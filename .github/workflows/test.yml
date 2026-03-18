@@ -1,0 +1,21 @@
+name: Tests LLM
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Correr tests
+        env:
+          OLLAMA_HOST: http://localhost:11434
+        run: |
+          D:\proyectos\motor-OCR\venv\Scripts\Activate.ps1
+          pytest tests\ -v --tb=short
+        shell: powershell
