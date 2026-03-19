@@ -11,6 +11,10 @@ jobs:
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
+      
+      - name: Verificar Python
+        run: py -3.11 --version
+        shell: powershell
 
       - name: Correr tests
         env:
