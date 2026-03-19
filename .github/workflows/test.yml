@@ -11,15 +11,10 @@ jobs:
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
-      
-      - name: Verificar Python
-        run: py -3.11 --version
-        shell: powershell
 
       - name: Correr tests
         env:
           OLLAMA_HOST: http://localhost:11434
         run: |
-          D:\proyectos\motor-OCR\venv\Scripts\Activate.ps1
-          pytest tests\ -v --tb=short
+          D:\proyectos\motor-OCR\venv\Scripts\python.exe -m pytest tests\ -v --tb=short
         shell: powershell
