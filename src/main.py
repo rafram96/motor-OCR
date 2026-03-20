@@ -5,6 +5,7 @@ import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import List, Optional, Tuple
+from tqdm import tqdm
 
 from config import MAX_WORKERS, OUTPUT_DIR, SAVE_MARKDOWN
 from models.page_result import PageResult
@@ -118,12 +119,9 @@ def process_document(
     #             )
     # === PARALLEL_POOL_DISABLED_END ===
 
-    for i, (path, page_num) in enumerate(args, 1):
-        logger.info(f"  [{i}/{len(args)}] Procesando página {page_num}...")
+    for i, (path, page_num) in enumerate(tqdm(args, desc="OCR", unit="pág"), 1):
         result = process_page(path, page_num)
         results.append(result)
-        conf_str = f"{result.conf_promedio:.3f}" if result.conf_promedio is not None else "N/A"
-        logger.info(f"    → {result.engine_used} | conf={conf_str}")
 
     # ── 3. Construir DocumentResult ───────────────────────────────────────────
     results.sort(key=lambda x: x.page_number)

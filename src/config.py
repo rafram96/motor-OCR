@@ -4,6 +4,8 @@ import os
 # Debe setearse ANTES de cualquier import de paddle
 os.environ["FLAGS_use_mkldnn"] = "0"
 POPPLER_PATH = r"C:\poppler\Library\bin"
+os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
+
 
 # ── PaddleOCR ──────────────────────────────────────────────────────────────────
 PADDLE_LANG                 = "es"
