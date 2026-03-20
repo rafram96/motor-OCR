@@ -26,7 +26,7 @@ QWEN_MODEL                  = "qwen2.5vl:7b"
 QWEN_OLLAMA_BASE_URL        = "http://localhost:11434/v1"
 QWEN_OLLAMA_API_KEY         = "ollama"
 QWEN_MAX_TOKENS_OCR         = 2048
-QWEN_TIMEOUT                = 120.0
+QWEN_TIMEOUT                = 180.0
 
 # ── PDF a imágenes ─────────────────────────────────────────────────────────────
 PDF_DPI                     = 300

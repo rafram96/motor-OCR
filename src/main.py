@@ -15,16 +15,14 @@ from pipeline.page_processor import process_page
 
 logger = logging.getLogger(__name__)
 
+
 # ── Worker initializer ────────────────────────────────────────────────────────
-# Se ejecuta una vez por proceso worker al arrancar el pool.
-# Carga los modelos de PaddleOCR en el contexto del worker,
-# evitando recargarlos en cada llamada a process_page.
 
 def _worker_init() -> None:
     import os as _os
     _os.environ["FLAGS_use_mkldnn"] = "0"
     from engines.paddle_engine import get_ocr
-    get_ocr()   # fuerza la carga del modelo en este worker
+    get_ocr()
     logger.debug("Worker OCR inicializado.")
 
 
@@ -34,7 +32,7 @@ def _process_page_worker(args: tuple) -> PageResult:
     return process_page(image_path, page_number)
 
 
-# ── API pública ───────────────────────────────────────────────────────────────
+# ── API pública — OCR ─────────────────────────────────────────────────────────
 
 def process_document(
     pdf_path: str,
@@ -45,13 +43,15 @@ def process_document(
     """
     Procesa un PDF completo y retorna texto estructurado por página.
 
+    Flujo de dos pasadas para evitar conflictos de VRAM entre PaddleOCR y Qwen:
+    1. Paddle procesa TODAS las páginas primero (libera VRAM al terminar)
+    2. Qwen procesa solo las páginas que necesitan fallback
+
     Args:
         pdf_path:    Ruta al PDF escaneado.
         pages:       Lista de páginas a extraer (base 1). None = todas.
         output_dir:  Directorio para imágenes temporales y salida Markdown.
-                     Por defecto usa OUTPUT_DIR de config.py.
         keep_images: Si True, conserva las imágenes PNG después de procesar.
-                     Si False (por defecto), las elimina al terminar.
 
     Returns:
         DocumentResult con todas las páginas procesadas.
@@ -70,60 +70,71 @@ def process_document(
         logger.error(f"Error convirtiendo PDF a imágenes: {e}")
         raise
 
-    logger.info(f"  {len(image_paths)} páginas a procesar (modo secuencial)")
+    logger.info(f"  {len(image_paths)} páginas a procesar")
 
-    # ── 2. Procesar páginas en paralelo ───────────────────────────────────────
-    # Inferir número de página desde el nombre del archivo (pagina_0001.png → 1)
     def _page_number_from_path(path: str) -> int:
-        stem = Path(path).stem          # "pagina_0001"
+        stem = Path(path).stem
         try:
             return int(stem.split("_")[-1])
         except ValueError:
             return 0
 
-    args = [
+    args_list = [
         (path, _page_number_from_path(path))
         for path in image_paths
     ]
 
-    results: List[PageResult] = []
+    # ── 2. Pasada 1 — Paddle para todas las páginas ───────────────────────────
+    from engines import paddle_engine
+    from pipeline.decision import debe_usar_qwen
 
-    # === PARALLEL_POOL_DISABLED_START ===
-    # with ProcessPoolExecutor(
-    #     max_workers=MAX_WORKERS,
-    #     initializer=_worker_init,
-    # ) as executor:
-    #     future_to_page = {
-    #         executor.submit(_process_page_worker, a): a[1]
-    #         for a in args
-    #     }
-    #     for future in as_completed(future_to_page):
-    #         page_num = future_to_page[future]
-    #         try:
-    #             result = future.result()
-    #             results.append(result)
-    #             status = (
-    #                 f"✓ paddle conf={result.conf_promedio:.3f}"
-    #                 if result.engine_used == "paddle" and result.conf_promedio
-    #                 else f"⚠ {result.engine_used}"
-    #             )
-    #             logger.debug(f"  Página {page_num}: {status}")
-    #         except Exception as e:
-    #             logger.error(f"  Página {page_num}: excepción en worker — {e}")
-    #             results.append(
-    #                 PageResult.error_placeholder(
-    #                     page_number=page_num,
-    #                     image_path=args[page_num - 1][0] if page_num <= len(args) else "",
-    #                     reason=f"worker_exception: {e}",
-    #                 )
-    #             )
-    # === PARALLEL_POOL_DISABLED_END ===
+    logger.info("  Pasada 1: PaddleOCR...")
+    resultados_paddle: List[PageResult] = []
 
-    for i, (path, page_num) in enumerate(tqdm(args, desc="OCR", unit="pág"), 1):
-        result = process_page(path, page_num)
-        results.append(result)
+    for path, page_num in tqdm(args_list, desc="Paddle OCR", unit="pág"):
+        try:
+            result = paddle_engine.predict(path, page_num)
+        except Exception as e:
+            logger.error(f"  Página {page_num}: error en paddle — {e}")
+            result = PageResult.error_placeholder(page_num, path, f"paddle_exception: {e}")
+        resultados_paddle.append(result)
 
-    # ── 3. Construir DocumentResult ───────────────────────────────────────────
+    # ── 3. Pasada 2 — Qwen solo para páginas que lo necesitan ─────────────────
+    from engines import qwen_engine
+
+    paginas_qwen = [
+        (r, path, page_num)
+        for r, (path, page_num) in zip(resultados_paddle, args_list)
+        if debe_usar_qwen(r)[0]
+    ]
+
+    if paginas_qwen:
+        logger.info(f"  Pasada 2: Qwen fallback para {len(paginas_qwen)} páginas...")
+        qwen_map: dict = {}
+
+        for paddle_r, path, page_num in tqdm(paginas_qwen, desc="Qwen fallback", unit="pág"):
+            _, razon = debe_usar_qwen(paddle_r)
+            try:
+                qwen_r = qwen_engine.extract_text(
+                    image_path=path,
+                    page_number=page_num,
+                    fallback_reason=razon,
+                    tiempo_paddle=paddle_r.tiempo_paddle,
+                )
+            except Exception as e:
+                logger.error(f"  Página {page_num}: error en qwen — {e}")
+                qwen_r = PageResult.error_placeholder(page_num, path, f"qwen_exception: {e}")
+            qwen_map[page_num] = qwen_r
+
+        results = [
+            qwen_map.get(r.page_number, r)
+            for r in resultados_paddle
+        ]
+    else:
+        logger.info("  Pasada 2: no se necesita Qwen.")
+        results = resultados_paddle
+
+    # ── 4. Construir DocumentResult ───────────────────────────────────────────
     results.sort(key=lambda x: x.page_number)
 
     doc = DocumentResult(
@@ -141,15 +152,15 @@ def process_document(
         f"t={doc.tiempo_total:.1f}s"
     )
 
-    # ── 4. Markdown de métricas (opcional) ────────────────────────────────────
+    # ── 5. Markdown OCR (opcional) ────────────────────────────────────────────
     if SAVE_MARKDOWN:
         try:
             from output.markdown_writer import write_document_report
             write_document_report(doc, work_dir)
         except Exception as e:
-            logger.warning(f"No se pudo generar Markdown: {e}")
+            logger.warning(f"No se pudo generar Markdown OCR: {e}")
 
-    # ── 5. Limpiar imágenes temporales ────────────────────────────────────────
+    # ── 6. Limpiar imágenes temporales ────────────────────────────────────────
     if not keep_images:
         pages_dir = Path(work_dir) / "pages"
         if pages_dir.exists():
