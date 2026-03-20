@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from pdf2image import convert_from_path
 
-from config import PDF_DPI, PDF_IMAGE_FORMAT
+from config import PDF_DPI, PDF_IMAGE_FORMAT, POPPLER_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +52,7 @@ def pdf_to_images(
                     dpi=dpi,
                     first_page=page_num,
                     last_page=page_num,
+                    poppler_path=POPPLER_PATH
                 )
                 if imgs:
                     filename = f"pagina_{page_num:04d}.{PDF_IMAGE_FORMAT.lower()}"
@@ -67,7 +68,7 @@ def pdf_to_images(
         # Extraer todas las páginas de una vez (más eficiente)
         logger.info(f"Extrayendo todas las páginas de {os.path.basename(pdf_path)}")
         try:
-            imgs = convert_from_path(pdf_path, dpi=dpi)
+            imgs = convert_from_path(pdf_path, dpi=dpi, poppler_path=POPPLER_PATH)
             for i, img in enumerate(imgs, start=1):
                 filename = f"pagina_{i:04d}.{PDF_IMAGE_FORMAT.lower()}"
                 ruta = pages_dir / filename

@@ -3,6 +3,7 @@ import os
 # ── Entorno ────────────────────────────────────────────────────────────────────
 # Debe setearse ANTES de cualquier import de paddle
 os.environ["FLAGS_use_mkldnn"] = "0"
+POPPLER_PATH = r"C:\poppler\Library\bin"
 
 # ── PaddleOCR ──────────────────────────────────────────────────────────────────
 PADDLE_LANG                 = "es"
