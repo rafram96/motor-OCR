@@ -21,7 +21,7 @@ jobs:
       
       - name: Sincronizar dependencias
         run: |
-          D:\proyectos\motor-OCR\venv\Scripts\python.exe -m pip install -r requirements.txt
+          D:\proyectos\motor-OCR\venv\Scripts\python.exe -m pip install -r requirements.txt --quiet
         shell: powershell
 
       - name: Correr tests

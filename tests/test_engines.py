@@ -94,7 +94,8 @@ def test_predict_parses_metrics_and_text(monkeypatch):
 def test_predict_empty_result_returns_placeholder(monkeypatch):
     dummy_ocr = DummyOCR([])
     monkeypatch.setattr(paddle_engine, "get_ocr", lambda: dummy_ocr)
-    times = iter([200.0, 200.2])
+    # Logger llama time.time() internamente — dar valores extra
+    times = iter([200.0] + [200.2] * 20)
     monkeypatch.setattr(paddle_engine.time, "time", lambda: next(times))
 
     result = paddle_engine.predict("/tmp/page.png", 3)
@@ -109,7 +110,7 @@ def test_predict_exception_returns_placeholder(monkeypatch):
             raise RuntimeError("ocr boom")
 
     monkeypatch.setattr(paddle_engine, "get_ocr", lambda: FailingOCR())
-    times = iter([300.0, 300.3])
+    times = iter([300.0] + [300.3] * 20)
     monkeypatch.setattr(paddle_engine.time, "time", lambda: next(times))
 
     result = paddle_engine.predict("/tmp/page.png", 5)
@@ -165,7 +166,7 @@ def test_extract_text_api_error_returns_placeholder(monkeypatch):
     client = DummyClient(content="", fail=True)
     monkeypatch.setattr(qwen_engine, "get_client", lambda: client)
     monkeypatch.setattr(qwen_engine, "_encode_image", lambda image_path: "encoded")
-    times = iter([600.0, 600.8])
+    times = iter([600.0] + [600.8] * 20)
     monkeypatch.setattr(qwen_engine.time, "time", lambda: next(times))
 
     result = qwen_engine.extract_text(
