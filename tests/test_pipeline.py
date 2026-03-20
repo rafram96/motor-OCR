@@ -1,6 +1,11 @@
+import sys
 from pathlib import Path
 
 import pytest
+
+SRC = Path(__file__).parent.parent / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
 
 import engines.paddle_engine as paddle_engine
 import engines.qwen_engine as qwen_engine

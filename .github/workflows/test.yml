@@ -12,14 +12,15 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Correr tests
-        env:
-          OLLAMA_HOST: http://localhost:11434
-        run: |
-          D:\proyectos\motor-OCR\venv\Scripts\python.exe -m pytest tests\ -v --tb=short
-        shell: powershell
-          
       - name: Sincronizar dependencias
         run: |
           D:\proyectos\motor-OCR\venv\Scripts\python.exe -m pip install -r requirements.txt
+        shell: powershell
+
+      - name: Correr tests
+        env:
+          OLLAMA_HOST: http://localhost:11434
+          PYTHONPATH: ${{ github.workspace }}\src
+        run: |
+          D:\proyectos\motor-OCR\venv\Scripts\python.exe -m pytest tests\ -v --tb=short
         shell: powershell

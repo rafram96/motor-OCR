@@ -1,3 +1,10 @@
+import sys
+from pathlib import Path
+
+SRC = Path(__file__).parent.parent / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
 from config import UMBRAL_CONFIANZA_PROMEDIO, UMBRAL_TASA_DESCARTE
 from models.page_result import PageResult
 from pipeline.decision import debe_usar_qwen

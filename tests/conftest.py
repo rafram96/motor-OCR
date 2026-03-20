@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 
-ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
+# Agrega src/ al path para que los imports funcionen sin instalar el paquete
+SRC = Path(__file__).parent.parent / "src"
 
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
