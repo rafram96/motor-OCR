@@ -14,7 +14,7 @@ jobs:
       
       - name: Sincronizar dependencias
         run: |
-          D:\proyectos\motor-OCR\venv\Scripts\python.exe -m pip install -r requirements.txt --quiet
+          D:\proyectos\motor-OCR\venv\Scripts\python.exe -m pip install -r requirements.txt --extra-index-url https://www.paddlepaddle.org.cn/packages/stable/cu126/
         shell: powershell
 
       - name: Correr tests
