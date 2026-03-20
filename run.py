@@ -3,9 +3,8 @@ import logging
 import sys
 from pathlib import Path
 
-# Logging básico para ver qué pasa
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,  # cambia a INFO si hay demasiado output
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
@@ -18,7 +17,7 @@ PDF = r"D:\proyectos\motor-OCR\data\Profesionales.pdf"
 
 doc, secciones = process_and_segment(
     pdf_path=PDF,
-    keep_images=True,   # conserva PNGs para inspección
+    keep_images=True,
 )
 
 print("\n" + "="*60)
@@ -31,5 +30,3 @@ print("="*60)
 print(f"\nPROFESIONALES DETECTADOS: {len(secciones)}\n")
 for sec in secciones:
     print(f"  {sec.section_index:2d}. {sec.cargo:<50} ({sec.total_pages} págs, desde pág {sec.separator_page})")
-
-print("\nArchivos generados en:", r"D:\proyectos\infoobras\ocr_output")

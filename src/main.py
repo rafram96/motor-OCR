@@ -69,7 +69,7 @@ def process_document(
         logger.error(f"Error convirtiendo PDF a imágenes: {e}")
         raise
 
-    logger.info(f"  {len(image_paths)} páginas a procesar con {MAX_WORKERS} workers")
+    logger.info(f"  {len(image_paths)} páginas a procesar (modo secuencial)")
 
     # ── 2. Procesar páginas en paralelo ───────────────────────────────────────
     # Inferir número de página desde el nombre del archivo (pagina_0001.png → 1)
@@ -87,34 +87,43 @@ def process_document(
 
     results: List[PageResult] = []
 
-    with ProcessPoolExecutor(
-        max_workers=MAX_WORKERS,
-        initializer=_worker_init,
-    ) as executor:
-        future_to_page = {
-            executor.submit(_process_page_worker, a): a[1]
-            for a in args
-        }
-        for future in as_completed(future_to_page):
-            page_num = future_to_page[future]
-            try:
-                result = future.result()
-                results.append(result)
-                status = (
-                    f"✓ paddle conf={result.conf_promedio:.3f}"
-                    if result.engine_used == "paddle" and result.conf_promedio
-                    else f"⚠ {result.engine_used}"
-                )
-                logger.debug(f"  Página {page_num}: {status}")
-            except Exception as e:
-                logger.error(f"  Página {page_num}: excepción en worker — {e}")
-                results.append(
-                    PageResult.error_placeholder(
-                        page_number=page_num,
-                        image_path=args[page_num - 1][0] if page_num <= len(args) else "",
-                        reason=f"worker_exception: {e}",
-                    )
-                )
+    # === PARALLEL_POOL_DISABLED_START ===
+    # with ProcessPoolExecutor(
+    #     max_workers=MAX_WORKERS,
+    #     initializer=_worker_init,
+    # ) as executor:
+    #     future_to_page = {
+    #         executor.submit(_process_page_worker, a): a[1]
+    #         for a in args
+    #     }
+    #     for future in as_completed(future_to_page):
+    #         page_num = future_to_page[future]
+    #         try:
+    #             result = future.result()
+    #             results.append(result)
+    #             status = (
+    #                 f"✓ paddle conf={result.conf_promedio:.3f}"
+    #                 if result.engine_used == "paddle" and result.conf_promedio
+    #                 else f"⚠ {result.engine_used}"
+    #             )
+    #             logger.debug(f"  Página {page_num}: {status}")
+    #         except Exception as e:
+    #             logger.error(f"  Página {page_num}: excepción en worker — {e}")
+    #             results.append(
+    #                 PageResult.error_placeholder(
+    #                     page_number=page_num,
+    #                     image_path=args[page_num - 1][0] if page_num <= len(args) else "",
+    #                     reason=f"worker_exception: {e}",
+    #                 )
+    #             )
+    # === PARALLEL_POOL_DISABLED_END ===
+
+    for i, (path, page_num) in enumerate(args, 1):
+        logger.info(f"  [{i}/{len(args)}] Procesando página {page_num}...")
+        result = process_page(path, page_num)
+        results.append(result)
+        conf_str = f"{result.conf_promedio:.3f}" if result.conf_promedio is not None else "N/A"
+        logger.info(f"    → {result.engine_used} | conf={conf_str}")
 
     # ── 3. Construir DocumentResult ───────────────────────────────────────────
     results.sort(key=lambda x: x.page_number)

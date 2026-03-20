@@ -98,7 +98,7 @@ def test_pdf_to_images_specific_pages(monkeypatch, tmp_path):
     pdf_file.write_bytes(b"pdf")
     calls = []
 
-    def fake_convert_from_path(pdf_path, dpi, first_page=None, last_page=None):
+    def fake_convert_from_path(pdf_path, dpi, first_page=None, last_page=None, **kwargs):
         calls.append((pdf_path, dpi, first_page, last_page))
         return [DummyImage(f"page-{first_page}")]
 
@@ -124,7 +124,7 @@ def test_pdf_to_images_all_pages(monkeypatch, tmp_path):
     pdf_file.write_bytes(b"pdf")
     calls = []
 
-    def fake_convert_from_path(pdf_path, dpi):
+    def fake_convert_from_path(pdf_path, dpi, **kwargs):
         calls.append((pdf_path, dpi))
         return [DummyImage("one"), DummyImage("two")]
 
@@ -256,9 +256,7 @@ def test_process_document_orchestrates_workers_and_summary(monkeypatch, tmp_path
         return [str(path) for path in page_paths]
 
     monkeypatch.setattr(main_module, "pdf_to_images", fake_pdf_to_images)
-    monkeypatch.setattr(main_module, "_process_page_worker", lambda args: {1: page_1, 2: page_2}[args[1]])
-    monkeypatch.setattr(main_module, "ProcessPoolExecutor", FakeExecutor)
-    monkeypatch.setattr(main_module, "as_completed", lambda futures: list(futures))
+    monkeypatch.setattr(main_module, "process_page", lambda path, page_num: {1: page_1, 2: page_2}[page_num])
     monkeypatch.setattr(main_module, "SAVE_MARKDOWN", True)
     monkeypatch.setattr(main_module, "MAX_WORKERS", 2)
 
