@@ -22,7 +22,7 @@ UMBRAL_TASA_DESCARTE        = 0.20   # tasa_descarte > esto → fallback qwen
 UMBRAL_CONFIANZA_LINEA      = 0.85   # para marcar líneas individuales como bajas
 
 # ── Qwen-VL (Ollama) ───────────────────────────────────────────────────────────
-QWEN_MODEL                  = "qwen2.5vl:7b"
+QWEN_MODEL                  = "qwen2.5vl:7b" #qwen2.5vl:3b
 QWEN_OLLAMA_BASE_URL        = "http://localhost:11434/v1"
 QWEN_OLLAMA_API_KEY         = "ollama"
 QWEN_MAX_TOKENS_OCR         = 2048

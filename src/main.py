@@ -1,7 +1,12 @@
 import os
+import sys
 import shutil
+import json
+import pickle
 import logging
 import time
+import tempfile
+import subprocess
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -85,22 +90,34 @@ def process_document(
     ]
 
     # ── 2. Pasada 1 — Paddle para todas las páginas ───────────────────────────
-    from engines import paddle_engine
     from pipeline.decision import debe_usar_qwen
 
-    logger.info("  Pasada 1: PaddleOCR...")
-    resultados_paddle: List[PageResult] = []
+    # Pasada 1 — Paddle en subproceso separado
+    logger.info("  Pasada 1: PaddleOCR (subproceso)...")
 
-    for path, page_num in tqdm(args_list, desc="Paddle OCR", unit="pág"):
-        try:
-            result = paddle_engine.predict(path, page_num)
-        except Exception as e:
-            logger.error(f"  Página {page_num}: error en paddle — {e}")
-            result = PageResult.error_placeholder(page_num, path, f"paddle_exception: {e}")
-        resultados_paddle.append(result)
+    src_dir = str(Path(__file__).parent)
+    args_json = json.dumps(args_list)
+
+    with tempfile.NamedTemporaryFile(suffix=".pkl", delete=False) as tmp:
+        output_pkl = tmp.name
+
+    try:
+        subprocess.run(
+            [
+                sys.executable,
+                str(Path(src_dir) / "pipeline" / "paddle_worker.py"),
+                src_dir,
+                args_json,
+                output_pkl,
+            ],
+            check=True,
+        )
+        with open(output_pkl, "rb") as f:
+            resultados_paddle = pickle.load(f)
+    finally:
+        os.unlink(output_pkl)
 
     # ── 3. Pasada 2 — Qwen solo para páginas que lo necesitan ─────────────────
-    from engines import qwen_engine
 
     paginas_qwen = [
         (r, path, page_num)
@@ -109,6 +126,17 @@ def process_document(
     ]
 
     if paginas_qwen:
+        # ── Liberar VRAM de Paddle antes de Qwen ─────────────────────────────
+        import paddle
+        paddle.device.cuda.empty_cache()
+        # También destruir la instancia singleton
+        import engines.paddle_engine as _pe
+        _pe._ocr_instance = None
+        import gc
+        gc.collect()
+        logger.info("  VRAM liberada, iniciando Qwen...")
+
+        from engines import qwen_engine
         logger.info(f"  Pasada 2: Qwen fallback para {len(paginas_qwen)} páginas...")
         qwen_map: dict = {}
 
