@@ -4,7 +4,7 @@ import logging
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from config import MAX_WORKERS, OUTPUT_DIR, SAVE_MARKDOWN
 from models.page_result import PageResult
@@ -150,3 +150,59 @@ def process_document(
             logger.debug(f"Imágenes temporales eliminadas: {pages_dir}")
 
     return doc
+
+
+# ── API pública — OCR + Segmentación ─────────────────────────────────────────
+
+def process_and_segment(
+    pdf_path: str,
+    pages: Optional[List[int]] = None,
+    output_dir: Optional[str] = None,
+    keep_images: bool = False,
+) -> Tuple[DocumentResult, list]:
+    """
+    Flujo completo: OCR + segmentación por profesional.
+
+    Args:
+        pdf_path:    Ruta al PDF escaneado.
+        pages:       Lista de páginas a extraer (base 1). None = todas.
+        output_dir:  Directorio de salida.
+        keep_images: Si True, conserva las imágenes PNG.
+
+    Returns:
+        (DocumentResult, List[ProfessionalSection])
+    """
+    from segmentation.segmenter import segment_document
+    from segmentation.detector import es_candidata_separadora, evaluar_separadora
+    from segmentation.output.markdown_writer import write_segmentation_report
+
+    base_name = Path(pdf_path).stem
+    work_dir  = str(Path(output_dir or OUTPUT_DIR) / base_name)
+
+    # ── OCR ───────────────────────────────────────────────────────────────────
+    doc = process_document(
+        pdf_path=pdf_path,
+        pages=pages,
+        output_dir=output_dir,
+        keep_images=keep_images,
+    )
+
+    # ── Segmentación ──────────────────────────────────────────────────────────
+    secciones = segment_document(doc)
+
+    # Recopilar candidatas descartadas para el reporte
+    candidatas_descartadas = []
+    for page in sorted(doc.pages, key=lambda p: p.page_number):
+        if es_candidata_separadora(page):
+            sep = evaluar_separadora(page)
+            if not sep.es_separadora:
+                candidatas_descartadas.append(sep)
+
+    # ── Markdown segmentación (opcional) ──────────────────────────────────────
+    if SAVE_MARKDOWN:
+        try:
+            write_segmentation_report(doc, secciones, candidatas_descartadas, work_dir)
+        except Exception as e:
+            logger.warning(f"No se pudo generar reporte de segmentación: {e}")
+
+    return doc, secciones
