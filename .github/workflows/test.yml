@@ -18,3 +18,8 @@ jobs:
         run: |
           D:\proyectos\motor-OCR\venv\Scripts\python.exe -m pytest tests\ -v --tb=short
         shell: powershell
+          
+      - name: Sincronizar dependencias
+        run: |
+          D:\proyectos\motor-OCR\venv\Scripts\python.exe -m pip install -r requirements.txt
+        shell: powershell
