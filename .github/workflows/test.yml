@@ -12,6 +12,13 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
+      - name: Diagnóstico
+        run: |
+          D:\proyectos\motor-OCR\venv\Scripts\python.exe -c "import sys; print(sys.executable)"
+          D:\proyectos\motor-OCR\venv\Scripts\python.exe -c "import sys; [print(p) for p in sys.path]"
+          D:\proyectos\motor-OCR\venv\Scripts\python.exe -c "import numpy; print(numpy.__file__)"
+        shell: powershell
+      
       - name: Sincronizar dependencias
         run: |
           D:\proyectos\motor-OCR\venv\Scripts\python.exe -m pip install -r requirements.txt
