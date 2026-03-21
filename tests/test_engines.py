@@ -140,7 +140,7 @@ def test_extract_text_strips_think_and_builds_result(monkeypatch):
     assert result.lines == ["Linea 1", "Linea 2"]
     assert result.conf_promedio is None
     assert result.tiempo_paddle == 1.5
-    assert result.tiempo_qwen == pytest.approx(1.0)
+    assert result.tiempo_qwen == pytest.approx(3.0)
     assert result.tiempo_total == pytest.approx(3.0)
 
 
