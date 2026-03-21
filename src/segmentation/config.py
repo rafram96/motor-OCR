@@ -1,5 +1,5 @@
 # ── Filtro de candidatas ──────────────────────────────────────────────────────
-MAX_LINEAS_SEPARADORA  = 5     # páginas con más líneas no son separadoras
+MAX_LINEAS_SEPARADORA  = 10     # páginas con más líneas no son separadoras
 MIN_LINEAS_SEPARADORA  = 1     # páginas vacías tampoco
 
 # ── Qwen ─────────────────────────────────────────────────────────────────────
@@ -10,7 +10,7 @@ QWEN_MAX_TOKENS        = 128
 QWEN_TIMEOUT           = 60.0
 
 # ── Fallback fuzzy ────────────────────────────────────────────────────────────
-FUZZY_SCORE_MINIMO     = 75
+FUZZY_SCORE_MINIMO     = 85
 
 CARGOS_BASE = [
     "Gerente de Contrato",
@@ -22,11 +22,17 @@ CARGOS_BASE = [
     "Especialista en Instalaciones Sanitarias",
     "Especialista en Instalaciones Mecánicas",
     "Especialista en Seguridad y Salud",
+    "Especialista en Seguridad Salud y Medio Ambiente",
     "Especialista en Metrados y Costos",
+    "Especialista en Metrados Costos y Valorizaciones",
     "Especialista en Calidad",
-    "Especialista en BIM",
+    "Especialista en Control y Aseguramiento de Calidad",
+    "Especialista BIM",
     "Especialista en Equipamiento",
-    # lista viva — ampliar sin tocar código
+    "Especialista en Equipamiento Hospitalario",
+    "Especialista en Implementacion de Soluciones de Tecnologia de la Informacion",
+    "Especialista en Configuraciones Tecnologicas de la Informacion y Comunicaciones",
+    "Especialista en Instalaciones de Comunicaciones",
 ]
 
 # ── Normalización de errores OCR conocidos ────────────────────────────────────
@@ -58,6 +64,22 @@ NORMALIZACIONES = {
     "seguri dad": "Seguridad",
     "salu d": "Salud",
     "salod": "Salud",
+
+    "bim": "BIM",
+    "b1m": "BIM",
+    "implementaclon": "Implementación",
+    "implementacion": "Implementación",
+    "conflguraciones": "Configuraciones",
+    "configuraciones": "Configuraciones",
+    "informaclon": "Información",
+    "lnformacion": "Información",
+    "comunlcaciones": "Comunicaciones",
+    "comunlcacion": "Comunicación",
+    
+    # Control de calidad
+    "aseguramien to": "Aseguramiento",
+    "aseguramienio": "Aseguramiento",
+    "calldad": "Calidad",
 
     # Metrados / costos / valorizaciones
     "metradosv": "Metrados",

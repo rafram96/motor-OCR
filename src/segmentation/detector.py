@@ -122,15 +122,33 @@ def fuzzy_detect_cargo(texto: str) -> tuple[bool, str]:
         logger.warning("rapidfuzz no instalado — fallback fuzzy deshabilitado")
         return False, ""
 
-    resultado = rfprocess.extractOne(
-        texto.lower(),
-        [c.lower() for c in CARGOS_BASE],
-        scorer=fuzz.partial_ratio,
-    )
-    if resultado and resultado[1] >= FUZZY_SCORE_MINIMO:
-        # Retornar el cargo original de la lista (con acentos correctos)
-        idx = [c.lower() for c in CARGOS_BASE].index(resultado[0])
-        return True, CARGOS_BASE[idx]
+    lineas = [l.strip() for l in texto.splitlines() if l.strip()]
+
+    # Generar candidatos: texto completo + líneas individuales + pares consecutivos
+    candidatos = [texto]
+    candidatos += lineas
+    candidatos += [
+        f"{lineas[i]} {lineas[i+1]}"
+        for i in range(len(lineas) - 1)
+    ]
+    # También triples para cargos largos
+    candidatos += [
+        f"{lineas[i]} {lineas[i+1]} {lineas[i+2]}"
+        for i in range(len(lineas) - 2)
+    ]
+
+    cargos_lower = [c.lower() for c in CARGOS_BASE]
+
+    for candidato in candidatos:
+        resultado = rfprocess.extractOne(
+            candidato.lower(),
+            cargos_lower,
+            scorer=fuzz.partial_ratio,
+        )
+        if resultado and resultado[1] >= FUZZY_SCORE_MINIMO:
+            idx = cargos_lower.index(resultado[0])
+            return True, CARGOS_BASE[idx]
+
     return False, ""
 
 
@@ -200,42 +218,20 @@ def evaluar_separadora(page: PageResult) -> SeparatorPage:
     Evalúa si una página candidata es separadora.
 
     Lógica de aceptación:
-    - Fuzzy matchea cargo conocido en texto OCR → aceptar como fuzzy_directo
-    - Si fuzzy no matchea:
-      - Qwen dice es_separadora=True con confianza "alta" o "media" → aceptar
-      - Qwen falla / confianza "baja" / error → intentar fuzzy_fallback
+    - Qwen dice es_separadora=True con confianza "alta" o "media" y cargo claro → aceptar
+    - Si Qwen falla / confianza "baja" / sin cargo claro → intentar fuzzy_fallback
+      - Fuzzy matchea → aceptar como fuzzy_fallback
       - Fuzzy no matchea → descartar
 
     Siempre retorna un SeparatorPage (es_separadora puede ser False).
     """
     t_start = time.time()
 
-    # ── Pre-check: fuzzy directo sobre texto OCR ────────────────────────────
-    encontrado, cargo_fuzzy = fuzzy_detect_cargo(page.text)
-    if encontrado:
-        cargo_norm = normalizar_cargo(cargo_fuzzy)
-        logger.info(
-            f"Página {page.page_number}: separadora detectada por fuzzy directo "
-            f"(cargo='{cargo_norm}')"
-        )
-        return SeparatorPage(
-            page_number=page.page_number,
-            image_path=page.image_path,
-            line_count=page.line_count,
-            raw_text=page.text,
-            es_separadora=True,
-            cargo_detectado=cargo_fuzzy,
-            cargo_normalizado=cargo_norm,
-            confianza_qwen="fuzzy",
-            metodo="fuzzy_directo",
-            tiempo_deteccion=time.time() - t_start,
-        )
-
-    # ── Si fuzzy no matchea, confirmar con Qwen ─────────────────────────────
+    # ── Paso 1: Qwen como árbitro principal ─────────────────────────────────
     es_sep, cargo_qwen, confianza = _confirmar_con_qwen(page)
 
     # ── Qwen confiable ────────────────────────────────────────────────────────
-    if es_sep and confianza in ("alta", "media"):
+    if es_sep and confianza in ("alta", "media") and cargo_qwen.strip():
         cargo_norm = normalizar_cargo(cargo_qwen)
         logger.info(
             f"Página {page.page_number}: separadora detectada por Qwen "
@@ -254,7 +250,7 @@ def evaluar_separadora(page: PageResult) -> SeparatorPage:
             tiempo_deteccion=time.time() - t_start,
         )
 
-    # ── Qwen no confiable o falló → fuzzy fallback ───────────────────────────
+    # ── Paso 2: Fuzzy solo como rescate cuando Qwen falla ───────────────────
     encontrado, cargo_fuzzy = fuzzy_detect_cargo(page.text)
     if encontrado:
         cargo_norm = normalizar_cargo(cargo_fuzzy)
