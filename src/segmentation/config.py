@@ -1,5 +1,5 @@
 # ── Filtro de candidatas ──────────────────────────────────────────────────────
-MAX_LINEAS_SEPARADORA  = 10     # páginas con más líneas no son separadoras
+MAX_LINEAS_SEPARADORA  = 15     # páginas con más líneas no son separadoras
 MIN_LINEAS_SEPARADORA  = 1     # páginas vacías tampoco
 
 # ── Qwen ─────────────────────────────────────────────────────────────────────
@@ -33,6 +33,7 @@ CARGOS_BASE = [
     "Especialista en Implementacion de Soluciones de Tecnologia de la Informacion",
     "Especialista en Configuraciones Tecnologicas de la Informacion y Comunicaciones",
     "Especialista en Instalaciones de Comunicaciones",
+    "Especialista TIC",
 ]
 
 # ── Normalización de errores OCR conocidos ────────────────────────────────────

@@ -124,18 +124,22 @@ def fuzzy_detect_cargo(texto: str) -> tuple[bool, str]:
 
     lineas = [l.strip() for l in texto.splitlines() if l.strip()]
 
+    texto_completo_limpio = " ".join(
+        l.strip() for l in texto.splitlines() if l.strip()
+    )
+
     # Generar candidatos: texto completo + líneas individuales + pares consecutivos
-    candidatos = [texto]
-    candidatos += lineas
-    candidatos += [
+    pares = [
         f"{lineas[i]} {lineas[i+1]}"
         for i in range(len(lineas) - 1)
     ]
     # También triples para cargos largos
-    candidatos += [
+    triples = [
         f"{lineas[i]} {lineas[i+1]} {lineas[i+2]}"
         for i in range(len(lineas) - 2)
     ]
+
+    candidatos = [texto, texto_completo_limpio] + lineas + pares + triples
 
     cargos_lower = [c.lower() for c in CARGOS_BASE]
 
