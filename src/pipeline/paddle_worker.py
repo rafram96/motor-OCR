@@ -14,8 +14,8 @@ os.environ["FLAGS_use_mkldnn"] = "0"
 os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
 
 src_path = sys.argv[1]
-args_json = sys.argv[2]   # JSON con lista de (image_path, page_number)
-output_pkl = sys.argv[3]  # ruta donde guardar los PageResult serializados
+args_json_path = sys.argv[2]  # ruta a JSON con lista de (image_path, page_number)
+output_pkl = sys.argv[3]      # ruta donde guardar los PageResult serializados
 
 sys.path.insert(0, src_path)
 
@@ -41,7 +41,8 @@ def _format_eta(segundos: float) -> str:
         return f"{m}m{s:02d}s"
     return f"{s}s"
 
-args_list = json.loads(args_json)
+with open(args_json_path, "r", encoding="utf-8") as f:
+    args_list = json.load(f)
 results = []
 total = len(args_list)
 progreso_cada = max(1, total // 10) if total else 1

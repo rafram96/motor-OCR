@@ -109,7 +109,11 @@ def process_document(
     logger.info("  Pasada 1: PaddleOCR (subproceso)...")
 
     src_dir = str(Path(__file__).parent)
-    args_json = json.dumps(args_list)
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", delete=False, encoding="utf-8"
+    ) as tmp_args:
+        json.dump(args_list, tmp_args)
+        tmp_args_path = tmp_args.name
 
     with tempfile.NamedTemporaryFile(suffix=".pkl", delete=False) as tmp:
         output_pkl = tmp.name
@@ -121,7 +125,7 @@ def process_document(
                 sys.executable,
                 str(Path(src_dir) / "pipeline" / "paddle_worker.py"),
                 src_dir,
-                args_json,
+                tmp_args_path,
                 output_pkl,
             ],
             check=True,
@@ -132,6 +136,7 @@ def process_document(
         with open(output_pkl, "rb") as f:
             resultados_paddle = pickle.load(f)
     finally:
+        os.unlink(tmp_args_path)
         os.unlink(output_pkl)
 
     # ── 3. Pasada 2 — Qwen solo para páginas que lo necesitan ─────────────────

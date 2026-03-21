@@ -269,9 +269,10 @@ def test_process_document_orchestrates_workers_and_summary(monkeypatch, tmp_path
     monkeypatch.setattr(main_module, "pdf_to_images", fake_pdf_to_images)
 
     def fake_subprocess_run(cmd, check=True, **kwargs):
-        args_json = cmd[3]
+        args_json_path = cmd[3]
         output_pkl = cmd[4]
-        parsed = json.loads(args_json)
+        with open(args_json_path, "r", encoding="utf-8") as f:
+            parsed = json.load(f)
         results = []
         for _, page_num in parsed:
             results.append({1: page_1, 2: page_2_paddle}[page_num])
