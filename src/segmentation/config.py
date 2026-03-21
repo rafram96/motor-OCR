@@ -31,10 +31,48 @@ CARGOS_BASE = [
 
 # ── Normalización de errores OCR conocidos ────────────────────────────────────
 NORMALIZACIONES = {
-    "supersion":    "Supervisión",
-    "supervicion":  "Supervisión",
+    # Supervisión
+    "supersion": "Supervisión",
+    "supervicion": "Supervisión",
+    "supervision": "Supervisión",
+    "superv ision": "Supervisión",
+    "superv1sion": "Supervisión",
+
+    # Instalaciones
+    "instalaclones": "Instalaciones",
+    "instaiaciones": "Instalaciones",
+    "instalacionese": "Instalaciones",
+
+    # Especialidad sanitaria/mecánica/eléctrica
+    "sanltarias": "Sanitarias",
+    "sanitarlos": "Sanitarios",
+    "mecanicas": "Mecánicas",
+    "mecamicas": "Mecánicas",
+    "mecanlcas": "Mecánicas",
+    "electricas": "Eléctricas",
+    "electrlcas": "Eléctricas",
+    "electncas": "Eléctricas",
+
+    # Seguridad y salud
+    "segundad": "Seguridad",
+    "seguri dad": "Seguridad",
+    "salu d": "Salud",
+    "salod": "Salud",
+
+    # Metrados / costos / valorizaciones
+    "metradosv": "Metrados",
+    "co stos": "Costos",
     "varolizaciones": "Valorizaciones",
+    "valonzaciones": "Valorizaciones",
+    "valorizaclones": "Valorizaciones",
+
+    # Otras especialidades frecuentes
     "teconologicas": "Tecnológicas",
-    "mecanicas":    "Mecánicas",
+    "arqultectura": "Arquitectura",
+    "arqultectonico": "Arquitectónico",
+    "estructvras": "Estructuras",
+    "equipamlento": "Equipamiento",
+    "ca1idad": "Calidad",
+
     # ampliar conforme aparezcan nuevos errores en producción
 }

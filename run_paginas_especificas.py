@@ -1,0 +1,48 @@
+import logging
+import sys
+from pathlib import Path
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+)
+
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
+from main import process_document
+
+PDF = r"D:\proyectos\motor-OCR\data\Profesionales.pdf"
+
+# Edita esta lista in-code con las páginas que quieras procesar (base 1).
+PAGINAS = [74, 75, 84, 115, 147]
+
+
+def main() -> None:
+    doc = process_document(
+        pdf_path=PDF,
+        pages=PAGINAS,
+        keep_images=True,
+    )
+
+    print("\n" + "=" * 70)
+    print(f"Páginas solicitadas: {PAGINAS}")
+    print(
+        f"Procesadas: {doc.total_pages} | "
+        f"Paddle: {doc.pages_paddle} | Qwen: {doc.pages_qwen} | Error: {doc.pages_error}"
+    )
+    print("=" * 70)
+
+    for p in sorted(doc.pages, key=lambda x: x.page_number):
+        estado = p.engine_used
+        detalle = p.fallback_reason or ""
+        line_count = len(p.lines) if p.lines else 0
+        print(
+            f"Pag {p.page_number:>3}: engine={estado:<6} "
+            f"lineas={line_count:<4} "
+            f"detalle={detalle}"
+        )
+
+
+if __name__ == "__main__":
+    main()

@@ -40,6 +40,10 @@ class PageResult:
     tiempo_qwen: Optional[float]
     tiempo_total: float
 
+    # ── Detalle por línea (para reportes) ─────────────────────────────────────
+    # Scores alineados con `lines` (mismo índice). Vacío para qwen/error.
+    line_scores: List[float] = field(default_factory=list)
+
     @classmethod
     def error_placeholder(cls, page_number: int, image_path: str, reason: str) -> "PageResult":
         """
@@ -67,6 +71,7 @@ class PageResult:
             tiempo_paddle=None,
             tiempo_qwen=None,
             tiempo_total=0.0,
+            line_scores=[],
         )
 
     @property

@@ -200,15 +200,38 @@ def evaluar_separadora(page: PageResult) -> SeparatorPage:
     Evalúa si una página candidata es separadora.
 
     Lógica de aceptación:
-    - Qwen dice es_separadora=True con confianza "alta" o "media" → aceptar
-    - Qwen falla / confianza "baja" / error → intentar fuzzy
-      - Fuzzy matchea → aceptar como fuzzy_fallback
+    - Fuzzy matchea cargo conocido en texto OCR → aceptar como fuzzy_directo
+    - Si fuzzy no matchea:
+      - Qwen dice es_separadora=True con confianza "alta" o "media" → aceptar
+      - Qwen falla / confianza "baja" / error → intentar fuzzy_fallback
       - Fuzzy no matchea → descartar
 
     Siempre retorna un SeparatorPage (es_separadora puede ser False).
     """
     t_start = time.time()
 
+    # ── Pre-check: fuzzy directo sobre texto OCR ────────────────────────────
+    encontrado, cargo_fuzzy = fuzzy_detect_cargo(page.text)
+    if encontrado:
+        cargo_norm = normalizar_cargo(cargo_fuzzy)
+        logger.info(
+            f"Página {page.page_number}: separadora detectada por fuzzy directo "
+            f"(cargo='{cargo_norm}')"
+        )
+        return SeparatorPage(
+            page_number=page.page_number,
+            image_path=page.image_path,
+            line_count=page.line_count,
+            raw_text=page.text,
+            es_separadora=True,
+            cargo_detectado=cargo_fuzzy,
+            cargo_normalizado=cargo_norm,
+            confianza_qwen="fuzzy",
+            metodo="fuzzy_directo",
+            tiempo_deteccion=time.time() - t_start,
+        )
+
+    # ── Si fuzzy no matchea, confirmar con Qwen ─────────────────────────────
     es_sep, cargo_qwen, confianza = _confirmar_con_qwen(page)
 
     # ── Qwen confiable ────────────────────────────────────────────────────────
@@ -231,7 +254,7 @@ def evaluar_separadora(page: PageResult) -> SeparatorPage:
             tiempo_deteccion=time.time() - t_start,
         )
 
-    # ── Qwen no confiable o falló → fuzzy ─────────────────────────────────────
+    # ── Qwen no confiable o falló → fuzzy fallback ───────────────────────────
     encontrado, cargo_fuzzy = fuzzy_detect_cargo(page.text)
     if encontrado:
         cargo_norm = normalizar_cargo(cargo_fuzzy)

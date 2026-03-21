@@ -21,6 +21,19 @@ from pipeline.page_processor import process_page
 logger = logging.getLogger(__name__)
 
 
+def _format_eta(segundos: float) -> str:
+    if segundos <= 0:
+        return "0s"
+    s = int(segundos)
+    m, s = divmod(s, 60)
+    h, m = divmod(m, 60)
+    if h > 0:
+        return f"{h}h{m:02d}m{s:02d}s"
+    if m > 0:
+        return f"{m}m{s:02d}s"
+    return f"{s}s"
+
+
 # ── Worker initializer ────────────────────────────────────────────────────────
 
 def _worker_init() -> None:
@@ -102,6 +115,7 @@ def process_document(
         output_pkl = tmp.name
 
     try:
+        t_paddle_start = time.time()
         subprocess.run(
             [
                 sys.executable,
@@ -111,6 +125,9 @@ def process_document(
                 output_pkl,
             ],
             check=True,
+        )
+        logger.info(
+            f"  Pasada 1 completada en {_format_eta(time.time() - t_paddle_start)}"
         )
         with open(output_pkl, "rb") as f:
             resultados_paddle = pickle.load(f)
@@ -139,8 +156,14 @@ def process_document(
         from engines import qwen_engine
         logger.info(f"  Pasada 2: Qwen fallback para {len(paginas_qwen)} páginas...")
         qwen_map: dict = {}
+        t_qwen_start = time.time()
+        total_qwen = len(paginas_qwen)
+        progreso_cada = max(1, total_qwen // 10)
 
-        for paddle_r, path, page_num in tqdm(paginas_qwen, desc="Qwen fallback", unit="pág"):
+        for idx, (paddle_r, path, page_num) in enumerate(
+            tqdm(paginas_qwen, desc="Qwen fallback", unit="pág"),
+            start=1,
+        ):
             _, razon = debe_usar_qwen(paddle_r)
             try:
                 qwen_r = qwen_engine.extract_text(
@@ -153,6 +176,16 @@ def process_document(
                 logger.error(f"  Página {page_num}: error en qwen — {e}")
                 qwen_r = PageResult.error_placeholder(page_num, path, f"qwen_exception: {e}")
             qwen_map[page_num] = qwen_r
+
+            if idx == 1 or idx % progreso_cada == 0 or idx == total_qwen:
+                elapsed_qwen = time.time() - t_qwen_start
+                promedio = elapsed_qwen / idx
+                restante = max(0.0, promedio * (total_qwen - idx))
+                pct = (idx / total_qwen) * 100
+                logger.info(
+                    f"  Qwen progreso: {idx}/{total_qwen} ({pct:.1f}%), "
+                    f"ETA {_format_eta(restante)}"
+                )
 
         results = [
             qwen_map.get(r.page_number, r)
@@ -238,11 +271,26 @@ def process_and_segment(
 
     # Recopilar candidatas descartadas para el reporte
     candidatas_descartadas = []
-    for page in sorted(doc.pages, key=lambda p: p.page_number):
+    pages_ordenadas = sorted(doc.pages, key=lambda p: p.page_number)
+    total_pages = len(pages_ordenadas)
+    progreso_cada = max(1, total_pages // 10)
+    t_descartadas_start = time.time()
+
+    for idx, page in enumerate(pages_ordenadas, start=1):
         if es_candidata_separadora(page):
             sep = evaluar_separadora(page)
             if not sep.es_separadora:
                 candidatas_descartadas.append(sep)
+
+        if idx == 1 or idx % progreso_cada == 0 or idx == total_pages:
+            elapsed = time.time() - t_descartadas_start
+            promedio = elapsed / idx
+            restante = max(0.0, promedio * (total_pages - idx))
+            pct = (idx / total_pages) * 100
+            logger.info(
+                f"  Segmentación (descartadas) progreso: {idx}/{total_pages} "
+                f"({pct:.1f}%), ETA {_format_eta(restante)}"
+            )
 
     # ── Markdown segmentación (opcional) ──────────────────────────────────────
     if SAVE_MARKDOWN:

@@ -67,18 +67,29 @@ def extract_text(
     max_retries = len(max_sizes)
 
     for attempt, max_size in enumerate(max_sizes, 1):
+        t_attempt = time.time()
         try:
             b64 = _encode_image(image_path, max_size=max_size)
         except Exception as e:
-            logger.error(f"Página {page_number}: no se pudo leer imagen — {e}")
+            logger.exception(
+                f"Página {page_number}: no se pudo leer imagen (intento {attempt}/{max_retries}, "
+                f"max_size={max_size}px)"
+            )
             return PageResult.error_placeholder(
                 page_number=page_number,
                 image_path=image_path,
                 reason=f"qwen_image_read_error: {e}",
             )
 
+        payload_kb = len(b64.encode("utf-8")) / 1024.0
+        logger.debug(
+            f"Página {page_number}: intento {attempt}/{max_retries} preparado "
+            f"(max_size={max_size}px, payload={payload_kb:.1f}KB, razón='{fallback_reason}')"
+        )
+
         try:
             client = get_client()
+            t_request = time.time()
             response = client.chat.completions.create(
                 model=QWEN_MODEL,
                 messages=[
@@ -103,6 +114,7 @@ def extract_text(
                 temperature=0,
                 max_tokens=QWEN_MAX_TOKENS_OCR,
             )
+            request_elapsed = time.time() - t_request
 
             raw = response.choices[0].message.content.strip()
 
@@ -113,11 +125,13 @@ def extract_text(
             lineas = [l for l in raw.splitlines() if l.strip()]
             texto = "\n".join(lineas)
             elapsed = time.time() - t_start
+            attempt_elapsed = time.time() - t_attempt
 
             logger.debug(
                 f"Página {page_number}: qwen OK — "
                 f"{len(lineas)} líneas, t={elapsed:.2f}s, razón='{fallback_reason}', "
-                f"intento={attempt}/{max_retries}, max_size={max_size}px"
+                f"intento={attempt}/{max_retries}, max_size={max_size}px, "
+                f"req_t={request_elapsed:.2f}s, intento_t={attempt_elapsed:.2f}s"
             )
 
             return PageResult(
@@ -142,17 +156,25 @@ def extract_text(
                 tiempo_paddle=tiempo_paddle,
                 tiempo_qwen=elapsed,
                 tiempo_total=elapsed,
+                line_scores=[],
             )
         except Exception as e:
+            request_elapsed = time.time() - t_attempt
+            exc_type = type(e).__name__
             if attempt < max_retries:
+                next_size = max_sizes[attempt]
                 logger.warning(
                     f"Página {page_number}: Qwen falló (intento {attempt}/{max_retries}), "
-                    f"reintentando con imagen {max_size}px — {e}"
+                    f"tipo={exc_type}, intento_t={request_elapsed:.2f}s, "
+                    f"payload={payload_kb:.1f}KB, siguiente_max_size={next_size}px — {e}"
                 )
                 time.sleep(2)
                 continue
 
-            logger.error(f"Página {page_number}: Qwen falló tras {max_retries} intentos — {e}")
+            logger.exception(
+                f"Página {page_number}: Qwen falló tras {max_retries} intentos "
+                f"(tipo={exc_type}, intento_t={request_elapsed:.2f}s, payload={payload_kb:.1f}KB)"
+            )
             return PageResult.error_placeholder(
                 page_number=page_number,
                 image_path=image_path,

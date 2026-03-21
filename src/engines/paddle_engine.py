@@ -91,8 +91,22 @@ def predict(image_path: str, page_number: int) -> PageResult:
     dt_polys: list = res.get("dt_polys", [])
     angle: int    = res.get("doc_preprocessor_res", {}).get("angle", 0)
 
-    # Filtrar líneas vacías
-    lineas_limpias = [t for t in textos if isinstance(t, str) and t.strip()]
+    # Filtrar líneas vacías conservando el score alineado por índice
+    lineas_limpias: list[str] = []
+    scores_limpios: list[float] = []
+    for t, s in zip(textos, scores):
+        if isinstance(t, str) and t.strip():
+            lineas_limpias.append(t)
+            try:
+                scores_limpios.append(float(s))
+            except (TypeError, ValueError):
+                scores_limpios.append(0.0)
+
+    # Si por alguna razón rec_scores no viene, mantener líneas sin score.
+    if not scores:
+        lineas_limpias = [t for t in textos if isinstance(t, str) and t.strip()]
+        scores_limpios = []
+
     texto_completo = "\n".join(lineas_limpias)
 
     # ── Métricas de confianza ─────────────────────────────────────────────────
@@ -100,8 +114,8 @@ def predict(image_path: str, page_number: int) -> PageResult:
     rec_count = len(textos)
     tasa_descarte = (det_count - rec_count) / det_count if det_count > 0 else 0.0
 
-    if scores:
-        arr = np.array(scores, dtype=float)
+    if scores_limpios:
+        arr = np.array(scores_limpios, dtype=float)
         conf_promedio  = float(np.mean(arr))
         conf_mediana   = float(np.median(arr))
         conf_min       = float(np.min(arr))
@@ -146,4 +160,5 @@ def predict(image_path: str, page_number: int) -> PageResult:
         tiempo_paddle=t_paddle,
         tiempo_qwen=None,
         tiempo_total=elapsed,
+        line_scores=scores_limpios,
     )

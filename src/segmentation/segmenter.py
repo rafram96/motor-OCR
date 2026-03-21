@@ -1,5 +1,6 @@
 from __future__ import annotations
 import logging
+import time
 from typing import List
 
 from models.document_result import DocumentResult
@@ -9,6 +10,19 @@ from segmentation.models.separator_page import SeparatorPage
 from segmentation.models.professional_section import ProfessionalSection
 
 logger = logging.getLogger(__name__)
+
+
+def _format_eta(segundos: float) -> str:
+    if segundos <= 0:
+        return "0s"
+    s = int(segundos)
+    m, s = divmod(s, 60)
+    h, m = divmod(m, 60)
+    if h > 0:
+        return f"{h}h{m:02d}m{s:02d}s"
+    if m > 0:
+        return f"{m}m{s:02d}s"
+    return f"{s}s"
 
 
 def segment_document(doc: DocumentResult) -> List[ProfessionalSection]:
@@ -41,10 +55,24 @@ def segment_document(doc: DocumentResult) -> List[ProfessionalSection]:
     )
 
     separadoras: List[SeparatorPage] = []
-    for page in candidatas:
+    total_candidatas = len(candidatas)
+    progreso_cada = max(1, total_candidatas // 10) if total_candidatas else 1
+    t_candidatas = time.time()
+
+    for idx, page in enumerate(candidatas, start=1):
         sep = evaluar_separadora(page)
         if sep.es_separadora:
             separadoras.append(sep)
+
+        if idx == 1 or idx % progreso_cada == 0 or idx == total_candidatas:
+            elapsed = time.time() - t_candidatas
+            promedio = elapsed / idx
+            restante = max(0.0, promedio * (total_candidatas - idx))
+            pct = (idx / total_candidatas) * 100 if total_candidatas else 100.0
+            logger.info(
+                f"Segmentación progreso (confirmación): {idx}/{total_candidatas} "
+                f"({pct:.1f}%), ETA {_format_eta(restante)}"
+            )
 
     logger.info(f"Separadoras confirmadas: {len(separadoras)}")
 

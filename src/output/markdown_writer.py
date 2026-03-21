@@ -10,6 +10,11 @@ from config import UMBRAL_CONFIANZA_PROMEDIO, UMBRAL_TASA_DESCARTE, UMBRAL_CONFI
 logger = logging.getLogger(__name__)
 
 
+def _md_escape(texto: str) -> str:
+    """Escapa caracteres que rompen tablas markdown."""
+    return texto.replace("|", "\\|").replace("\n", " ").strip()
+
+
 def write_document_report(doc: DocumentResult, output_dir: str) -> tuple[str, str]:
     """
     Genera dos archivos Markdown por documento procesado:
@@ -141,13 +146,24 @@ def _write_metricas(doc: DocumentResult, pages: list[PageResult], ruta: str) -> 
             for p in paginas_con_lineas_bajas:
                 f.write(f"### Página {p.page_number}\n\n")
                 f.write("| # | Score | Texto |\n|---|-------|-------|\n")
-                # Necesitamos reconstruir scores por línea — solo tenemos el agregado
-                # Se deja este bloque como placeholder para cuando se exponga
-                # rec_scores junto a lines en PageResult (mejora futura)
-                f.write(
-                    f"| — | — | "
-                    f"({p.lineas_baja_confianza} líneas bajo {UMBRAL_CONFIANZA_LINEA}) |\n"
-                )
+
+                lineas_bajas = []
+                if p.line_scores and p.lines:
+                    for idx, (score, texto_linea) in enumerate(zip(p.line_scores, p.lines), start=1):
+                        if score < UMBRAL_CONFIANZA_LINEA:
+                            lineas_bajas.append((idx, score, texto_linea))
+
+                if lineas_bajas:
+                    for idx, score, texto_linea in lineas_bajas:
+                        f.write(
+                            f"| {idx} | {score:.4f} | {_md_escape(texto_linea)} |\n"
+                        )
+                else:
+                    palabra_linea = "línea" if p.lineas_baja_confianza == 1 else "líneas"
+                    f.write(
+                        f"| — | — | "
+                        f"({p.lineas_baja_confianza} {palabra_linea} bajo {UMBRAL_CONFIANZA_LINEA}) |\n"
+                    )
                 f.write("\n")
 
         # ── Configuración usada ───────────────────────────────────────────────
