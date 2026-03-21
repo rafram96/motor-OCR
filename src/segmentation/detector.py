@@ -35,18 +35,29 @@ Responde SOLO con JSON, sin explicaciones. /no_think
     "confianza": "alta" | "media" | "baja"
 }
 
-Una página separadora ES aquella que contiene ÚNICAMENTE el cargo del
-profesional propuesto por el postor, escrito en grande y centrado.
-Ejemplos válidos: GERENTE DE CONTRATO, JEFE DE SUPERVISIÓN,
-ESPECIALISTA EN ESTRUCTURAS, ESPECIALISTA BIM.
+Una página separadora ES aquella cuyo contenido principal es el cargo
+del profesional propuesto por el postor. Puede tener:
+- Solo el cargo en grande y centrado (ej: ESPECIALISTA EN ESTRUCTURAS)
+- El nombre del consorcio arriba y el cargo abajo
+- El cargo entre líneas decorativas con un número
+- Un sello o firma del representante del consorcio abajo
+
+Cargos válidos típicos: GERENTE DE CONTRATO, JEFE DE SUPERVISIÓN,
+SUPERVISOR DE OBRA, ESPECIALISTA EN ESTRUCTURAS, ESPECIALISTA EN
+ARQUITECTURA, ESPECIALISTA EN INSTALACIONES SANITARIAS, ESPECIALISTA
+EN INSTALACIONES MECÁNICAS, ESPECIALISTA BIM, ESPECIALISTA EN
+EQUIPAMIENTO, ESPECIALISTA EN SEGURIDAD Y SALUD, ESPECIALISTA EN
+METRADOS Y COSTOS, ESPECIALISTA EN INSTALACIONES SANITARIAS y similares.
 
 Una página separadora NO ES:
-- Una página con un diploma o título universitario
-- Una página con un certificado del CIP
-- Una página con firma de Rector, Decano, Secretario General,
-    Director o cualquier autoridad universitaria o institucional
-- Una página en blanco o ilegible
-- Una página con sellos y firmas de documentos oficiales
+- Un diploma universitario (tiene escudo, texto "A nombre de la Nación")
+- Un certificado del CIP o de otro colegio profesional
+- Un Documento de Identidad
+- Una constancia o certificado de trabajo
+- Una página donde el cargo principal es Rector, Decano, Secretario
+    General, Director, Representante Legal u otra autoridad institucional
+- Una página con solo sellos, firmas o páginas en blanco
+- Una página del Anexo N°16 con tablas de experiencia
 """
 
 
