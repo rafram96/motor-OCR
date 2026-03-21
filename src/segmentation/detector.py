@@ -26,19 +26,28 @@ logger = logging.getLogger(__name__)
 
 _client: Optional[OpenAI] = None
 
-PROMPT_SEPARADORA = (
-    "Analiza esta imagen de un expediente de licitación pública peruana. "
-    "Responde SOLO con JSON, sin explicaciones. /no_think\n"
-    "{\n"
-    '  "es_separadora": true,\n'
-    '  "cargo": "cargo exacto que aparece en la página o null",\n'
-    '  "confianza": "alta"\n'
-    "}\n\n"
-    "Una página separadora contiene únicamente el título del cargo de un "
-    "profesional (ej: JEFE DE SUPERVISIÓN, ESPECIALISTA EN ESTRUCTURAS, "
-    "GERENTE DE CONTRATO) con poco o ningún otro contenido. "
-    'Los valores de "confianza" posibles son: "alta", "media", "baja".'
-)
+PROMPT_SEPARADORA = """
+Analiza esta imagen de un expediente de licitación pública peruana.
+Responde SOLO con JSON, sin explicaciones. /no_think
+{
+    "es_separadora": true/false,
+    "cargo": "cargo exacto o null",
+    "confianza": "alta" | "media" | "baja"
+}
+
+Una página separadora ES aquella que contiene ÚNICAMENTE el cargo del
+profesional propuesto por el postor, escrito en grande y centrado.
+Ejemplos válidos: GERENTE DE CONTRATO, JEFE DE SUPERVISIÓN,
+ESPECIALISTA EN ESTRUCTURAS, ESPECIALISTA BIM.
+
+Una página separadora NO ES:
+- Una página con un diploma o título universitario
+- Una página con un certificado del CIP
+- Una página con firma de Rector, Decano, Secretario General,
+    Director o cualquier autoridad universitaria o institucional
+- Una página en blanco o ilegible
+- Una página con sellos y firmas de documentos oficiales
+"""
 
 
 # ── Singleton cliente Qwen ────────────────────────────────────────────────────
@@ -62,7 +71,17 @@ def es_candidata_separadora(page: PageResult) -> bool:
     Las separadoras tienen 1–6 líneas. Las de contenido tienen 20–80.
     Evita mandar páginas de contenido a Qwen innecesariamente.
     """
-    return MIN_LINEAS_SEPARADORA <= page.line_count <= MAX_LINEAS_SEPARADORA
+    lines = [l for l in page.lines if l.strip()]
+    if not lines:
+        return False
+
+    # Descartar páginas con solo caracteres repetidos (!!!!!, -----, etc.)
+    texto_limpio = " ".join(lines)
+    chars_unicos = set(texto_limpio.replace(" ", ""))
+    if len(chars_unicos) <= 2:
+        return False
+
+    return MIN_LINEAS_SEPARADORA <= len(lines) <= MAX_LINEAS_SEPARADORA
 
 
 # ── Normalización de cargos ───────────────────────────────────────────────────
