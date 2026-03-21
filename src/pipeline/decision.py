@@ -6,7 +6,7 @@ def debe_usar_qwen(page_result: PageResult) -> tuple[bool, str]:
     """
     Decide si una página necesita ser reprocesada con Qwen-VL.
 
-    Evalúa dos criterios independientes — cualquiera activa el fallback:
+    Evalúa dos criterios y exige ambos para activar fallback:
     - Confianza promedio de paddle por debajo del umbral
     - Tasa de descarte (regiones detectadas pero no reconocidas) por encima del umbral
 
@@ -21,23 +21,18 @@ def debe_usar_qwen(page_result: PageResult) -> tuple[bool, str]:
     if page_result.is_error:
         return False, ""
 
-    # Confianza promedio baja
-    if page_result.conf_promedio is not None:
-        if page_result.conf_promedio < UMBRAL_CONFIANZA_PROMEDIO:
-            return True, (
-                f"confianza promedio baja "
-                f"({page_result.conf_promedio:.3f} < {UMBRAL_CONFIANZA_PROMEDIO})"
-            )
-    else:
-        # conf_promedio es None → página en blanco o ilegible
-        # No mandamos a Qwen páginas en blanco — no vale la pena
+    # Página en blanco o ilegible — no vale la pena mandar a Qwen
+    if page_result.conf_promedio is None:
         return False, ""
 
-    # Tasa de descarte alta
-    if page_result.tasa_descarte > UMBRAL_TASA_DESCARTE:
+    conf_baja = page_result.conf_promedio < UMBRAL_CONFIANZA_PROMEDIO
+    descarte_alto = page_result.tasa_descarte > UMBRAL_TASA_DESCARTE
+
+    # Requiere AMBAS condiciones simultáneas
+    if conf_baja and descarte_alto:
         return True, (
-            f"tasa de descarte alta "
-            f"({page_result.tasa_descarte*100:.1f}% > {UMBRAL_TASA_DESCARTE*100:.0f}%)"
+            f"confianza baja ({page_result.conf_promedio:.3f}) "
+            f"y descarte alto ({page_result.tasa_descarte*100:.1f}%)"
         )
 
     return False, ""

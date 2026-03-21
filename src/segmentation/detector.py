@@ -82,17 +82,24 @@ def es_candidata_separadora(page: PageResult) -> bool:
     Las separadoras tienen 1–6 líneas. Las de contenido tienen 20–80.
     Evita mandar páginas de contenido a Qwen innecesariamente.
     """
-    lines = [l for l in page.lines if l.strip()]
-    if not lines:
+    lines = [l.strip() for l in page.lines if l.strip()]
+
+    # Ignorar líneas de ruido: números de folio, tokens muy cortos, etc.
+    lines_limpias = [
+        l for l in lines
+        if len(l) > 2 and not l.isdigit()
+    ]
+
+    if not lines_limpias:
         return False
 
     # Descartar páginas con solo caracteres repetidos (!!!!!, -----, etc.)
-    texto_limpio = " ".join(lines)
+    texto_limpio = " ".join(lines_limpias)
     chars_unicos = set(texto_limpio.replace(" ", ""))
     if len(chars_unicos) <= 2:
         return False
 
-    return MIN_LINEAS_SEPARADORA <= len(lines) <= MAX_LINEAS_SEPARADORA
+    return MIN_LINEAS_SEPARADORA <= len(lines_limpias) <= MAX_LINEAS_SEPARADORA
 
 
 # ── Normalización de cargos ───────────────────────────────────────────────────

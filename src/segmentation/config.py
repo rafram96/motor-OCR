@@ -1,5 +1,5 @@
 # ── Filtro de candidatas ──────────────────────────────────────────────────────
-MAX_LINEAS_SEPARADORA  = 15     # páginas con más líneas no son separadoras
+MAX_LINEAS_SEPARADORA  = 10     # páginas con más líneas no son separadoras
 MIN_LINEAS_SEPARADORA  = 1     # páginas vacías tampoco
 
 # ── Qwen ─────────────────────────────────────────────────────────────────────
