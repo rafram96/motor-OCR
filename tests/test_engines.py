@@ -81,11 +81,11 @@ def test_predict_parses_metrics_and_text(monkeypatch):
     assert result.det_count == 3
     assert result.rec_count == 3
     assert result.tasa_descarte == 0.0
-    assert result.conf_promedio == pytest.approx(0.8)
-    assert result.conf_mediana == pytest.approx(0.8)
-    assert result.conf_min == pytest.approx(0.7)
+    assert result.conf_promedio == pytest.approx(0.85)
+    assert result.conf_mediana == pytest.approx(0.85)
+    assert result.conf_min == pytest.approx(0.8)
     assert result.conf_max == pytest.approx(0.9)
-    assert result.lineas_baja_confianza == 2
+    assert result.lineas_baja_confianza == 1
     assert result.angle_detected == 90
     assert result.tiempo_paddle == pytest.approx(0.5)
     assert result.tiempo_total == pytest.approx(1.25)
@@ -122,7 +122,7 @@ def test_predict_exception_returns_placeholder(monkeypatch):
 def test_extract_text_strips_think_and_builds_result(monkeypatch):
     client = DummyClient(content="<think>probando</think>\nLinea 1\nLinea 2\n")
     monkeypatch.setattr(qwen_engine, "get_client", lambda: client)
-    monkeypatch.setattr(qwen_engine, "_encode_image", lambda image_path: "encoded")
+    monkeypatch.setattr(qwen_engine, "_encode_image", lambda image_path, max_size=2048: "encoded")
     times = iter([400.0, 401.0, 403.0])
     monkeypatch.setattr(qwen_engine.time, "time", lambda: next(times))
 
@@ -145,11 +145,11 @@ def test_extract_text_strips_think_and_builds_result(monkeypatch):
 
 
 def test_extract_text_image_read_error_returns_placeholder(monkeypatch):
-    def raise_image_error(image_path):
+    def raise_image_error(image_path, max_size=2048):
         raise OSError("bad image")
 
     monkeypatch.setattr(qwen_engine, "_encode_image", raise_image_error)
-    times = iter([500.0, 500.4])
+    times = iter([500.0] + [500.4] * 50)
     monkeypatch.setattr(qwen_engine.time, "time", lambda: next(times))
 
     result = qwen_engine.extract_text(
@@ -165,7 +165,8 @@ def test_extract_text_image_read_error_returns_placeholder(monkeypatch):
 def test_extract_text_api_error_returns_placeholder(monkeypatch):
     client = DummyClient(content="", fail=True)
     monkeypatch.setattr(qwen_engine, "get_client", lambda: client)
-    monkeypatch.setattr(qwen_engine, "_encode_image", lambda image_path: "encoded")
+    monkeypatch.setattr(qwen_engine, "_encode_image", lambda image_path, max_size=2048: "encoded")
+    monkeypatch.setattr(qwen_engine.time, "sleep", lambda _: None)
     times = iter([600.0] + [600.8] * 20)
     monkeypatch.setattr(qwen_engine.time, "time", lambda: next(times))
 

@@ -38,22 +38,26 @@ def make_page(conf_promedio, tasa_descarte, is_error=False):
     )
 
 
-def test_debe_usar_qwen_for_low_confidence():
-    page = make_page(UMBRAL_CONFIANZA_PROMEDIO - 0.01, 0.0)
+def test_debe_usar_qwen_when_both_conditions_match():
+    page = make_page(
+        UMBRAL_CONFIANZA_PROMEDIO - 0.01,
+        UMBRAL_TASA_DESCARTE + 0.05,
+    )
 
     usar_qwen, razon = debe_usar_qwen(page)
 
     assert usar_qwen is True
-    assert "confianza promedio baja" in razon
+    assert "confianza baja" in razon
+    assert "descarte alto" in razon
 
 
-def test_debe_usar_qwen_for_high_discard_rate():
+def test_debe_not_use_qwen_when_only_one_condition_matches():
     page = make_page(0.95, UMBRAL_TASA_DESCARTE + 0.1)
 
     usar_qwen, razon = debe_usar_qwen(page)
 
-    assert usar_qwen is True
-    assert "tasa de descarte alta" in razon
+    assert usar_qwen is False
+    assert razon == ""
 
 
 def test_debe_not_use_qwen_for_blank_page():

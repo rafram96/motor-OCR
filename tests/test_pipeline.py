@@ -1,4 +1,6 @@
 import sys
+import json
+import pickle
 from pathlib import Path
 
 import pytest
@@ -228,7 +230,15 @@ def test_process_document_orchestrates_workers_and_summary(monkeypatch, tmp_path
     pdf_file.write_bytes(b"pdf")
 
     page_1 = make_page(1, text="uno", lines=["uno"], conf_promedio=0.9, tiempo_total=1.0)
-    page_2 = make_page(
+    page_2_paddle = make_page(
+        2,
+        text="dos paddle",
+        lines=["dos paddle"],
+        conf_promedio=0.7,
+        tasa_descarte=0.6,
+        tiempo_total=1.0,
+    )
+    page_2_qwen = make_page(
         2,
         engine_used="qwen",
         fallback_reason="confianza baja",
@@ -256,7 +266,25 @@ def test_process_document_orchestrates_workers_and_summary(monkeypatch, tmp_path
         return [str(path) for path in page_paths]
 
     monkeypatch.setattr(main_module, "pdf_to_images", fake_pdf_to_images)
-    monkeypatch.setattr(main_module, "process_page", lambda path, page_num: {1: page_1, 2: page_2}[page_num])
+
+    def fake_subprocess_run(cmd, check):
+        args_json = cmd[3]
+        output_pkl = cmd[4]
+        parsed = json.loads(args_json)
+        results = []
+        for _, page_num in parsed:
+            results.append({1: page_1, 2: page_2_paddle}[page_num])
+        with open(output_pkl, "wb") as f:
+            pickle.dump(results, f)
+
+        class _Done:
+            returncode = 0
+
+        return _Done()
+
+    monkeypatch.setattr(main_module.subprocess, "run", fake_subprocess_run)
+    monkeypatch.setattr(decision_module, "debe_usar_qwen", lambda p: (p.page_number == 2, "confianza baja" if p.page_number == 2 else ""))
+    monkeypatch.setattr(qwen_engine, "extract_text", lambda **kwargs: page_2_qwen)
     monkeypatch.setattr(main_module, "SAVE_MARKDOWN", True)
     monkeypatch.setattr(main_module, "MAX_WORKERS", 2)
 

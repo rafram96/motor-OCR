@@ -66,8 +66,8 @@ def make_page(page_number: int, lines: list[str], text: str | None = None) -> Pa
 def test_es_candidata_separadora_bounds():
     assert detector.es_candidata_separadora(make_page(1, [])) is False
     assert detector.es_candidata_separadora(make_page(2, ["solo una"])) is True
-    assert detector.es_candidata_separadora(make_page(3, ["x"] * MAX_LINEAS_SEPARADORA)) is True
-    assert detector.es_candidata_separadora(make_page(4, ["x"] * (MAX_LINEAS_SEPARADORA + 1))) is False
+    assert detector.es_candidata_separadora(make_page(3, ["texto"] * MAX_LINEAS_SEPARADORA)) is True
+    assert detector.es_candidata_separadora(make_page(4, ["texto"] * (MAX_LINEAS_SEPARADORA + 1))) is False
 
 
 def test_normalizar_cargo_applies_known_replacements():
