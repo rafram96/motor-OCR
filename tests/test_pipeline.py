@@ -1,6 +1,7 @@
 import sys
 import json
 import pickle
+from types import SimpleNamespace
 from pathlib import Path
 
 import pytest
@@ -267,7 +268,7 @@ def test_process_document_orchestrates_workers_and_summary(monkeypatch, tmp_path
 
     monkeypatch.setattr(main_module, "pdf_to_images", fake_pdf_to_images)
 
-    def fake_subprocess_run(cmd, check):
+    def fake_subprocess_run(cmd, check=True, **kwargs):
         args_json = cmd[3]
         output_pkl = cmd[4]
         parsed = json.loads(args_json)
@@ -282,7 +283,7 @@ def test_process_document_orchestrates_workers_and_summary(monkeypatch, tmp_path
 
         return _Done()
 
-    monkeypatch.setattr(main_module.subprocess, "run", fake_subprocess_run)
+    monkeypatch.setattr(main_module, "subprocess", SimpleNamespace(run=fake_subprocess_run))
     monkeypatch.setattr(decision_module, "debe_usar_qwen", lambda p: (p.page_number == 2, "confianza baja" if p.page_number == 2 else ""))
     monkeypatch.setattr(qwen_engine, "extract_text", lambda **kwargs: page_2_qwen)
     monkeypatch.setattr(main_module, "SAVE_MARKDOWN", True)

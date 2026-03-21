@@ -123,7 +123,7 @@ def test_extract_text_strips_think_and_builds_result(monkeypatch):
     client = DummyClient(content="<think>probando</think>\nLinea 1\nLinea 2\n")
     monkeypatch.setattr(qwen_engine, "get_client", lambda: client)
     monkeypatch.setattr(qwen_engine, "_encode_image", lambda image_path, max_size=2048: "encoded")
-    times = iter([400.0, 401.0, 403.0])
+    times = iter([400.0, 401.0, 403.0] + [403.0] * 50)
     monkeypatch.setattr(qwen_engine.time, "time", lambda: next(times))
 
     result = qwen_engine.extract_text(
