@@ -149,7 +149,9 @@ def fuzzy_detect_cargo(texto: str) -> tuple[bool, str]:
     # Une todas las líneas útiles para capturar cargos partidos por OCR.
     texto_limpio = " ".join(
         l for l in lineas
-        if not l.isdigit() and not set(l) <= {"-", " "} and len(l) > 1
+        if not l.isdigit()
+        and not set(l.replace(" ", "")) <= {"-"}
+        and not (len(l) <= 2 and l.isalpha())
     )
 
     # Generar candidatos: texto completo + líneas individuales + pares consecutivos
@@ -278,34 +280,33 @@ def evaluar_separadora(page: PageResult) -> SeparatorPage:
             tiempo_deteccion=time.time() - t_start,
         )
 
-    # ── Paso 2: Fuzzy solo si Qwen falló técnicamente ────────────────────────
-    # Qwen falla técnicamente cuando confianza es "error".
-    # Si Qwen dijo "baja" o es_sep=False, es una decisión y se respeta.
-    if confianza == "error":
-        encontrado, cargo_fuzzy = fuzzy_detect_cargo(page.text)
-        if encontrado:
-            cargo_norm = normalizar_cargo(cargo_fuzzy)
-            logger.info(
-                f"Página {page.page_number}: separadora detectada por fuzzy "
-                f"(Qwen falló técnicamente, cargo='{cargo_norm}')"
-            )
-            return SeparatorPage(
-                page_number=page.page_number,
-                image_path=page.image_path,
-                line_count=page.line_count,
-                raw_text=page.text,
-                es_separadora=True,
-                cargo_detectado=cargo_fuzzy,
-                cargo_normalizado=cargo_norm,
-                confianza_qwen="fuzzy",
-                metodo="fuzzy_fallback",
-                tiempo_deteccion=time.time() - t_start,
-            )
+    # ── Paso 2: Fuzzy como segundo árbitro independiente ─────────────────────
+    # Actúa siempre que Qwen no aceptó — sea por error técnico,
+    # baja confianza, o decisión consciente de no es separadora.
+    encontrado, cargo_fuzzy = fuzzy_detect_cargo(page.text)
+    if encontrado:
+        cargo_norm = normalizar_cargo(cargo_fuzzy)
+        logger.info(
+            f"Página {page.page_number}: separadora detectada por fuzzy "
+            f"(qwen_conf={confianza}, cargo='{cargo_norm}')"
+        )
+        return SeparatorPage(
+            page_number=page.page_number,
+            image_path=page.image_path,
+            line_count=page.line_count,
+            raw_text=page.text,
+            es_separadora=True,
+            cargo_detectado=cargo_fuzzy,
+            cargo_normalizado=cargo_norm,
+            confianza_qwen=confianza,
+            metodo="fuzzy_fallback",
+            tiempo_deteccion=time.time() - t_start,
+        )
 
     # ── Descartada ────────────────────────────────────────────────────────────
     logger.debug(
         f"Página {page.page_number}: descartada "
-        f"(qwen_es_sep={es_sep}, conf={confianza})"
+        f"(qwen_es_sep={es_sep}, conf={confianza}, fuzzy=False)"
     )
     return SeparatorPage(
         page_number=page.page_number,
