@@ -42,6 +42,9 @@ def main() -> None:
             f"lineas={line_count:<4} "
             f"detalle={detalle}"
         )
+        print(f"\n--- Página {p.page_number} ---")
+        for i, line in enumerate(p.lines):
+            print(f"  [{i}] '{line}'")
 
 
 if __name__ == "__main__":
