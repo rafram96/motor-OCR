@@ -1,5 +1,6 @@
 from config import UMBRAL_CONFIANZA_PROMEDIO, UMBRAL_TASA_DESCARTE
 from models.page_result import PageResult
+from segmentation.config import MAX_LINEAS_SEPARADORA
 
 
 def debe_usar_qwen(page_result: PageResult) -> tuple[bool, str]:
@@ -23,6 +24,10 @@ def debe_usar_qwen(page_result: PageResult) -> tuple[bool, str]:
 
     # Página en blanco o ilegible — no vale la pena mandar a Qwen
     if page_result.conf_promedio is None:
+        return False, ""
+
+    # Candidata a separadora: el segmentador la evaluará con Qwen visual.
+    if page_result.line_count <= MAX_LINEAS_SEPARADORA:
         return False, ""
 
     conf_baja = page_result.conf_promedio < UMBRAL_CONFIANZA_PROMEDIO

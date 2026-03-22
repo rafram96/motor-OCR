@@ -8,6 +8,7 @@ if str(SRC) not in sys.path:
 from models.document_result import DocumentResult
 from models.page_result import PageResult
 import segmentation.segmenter as segmenter
+from segmentation.models.professional_section import ProfessionalSection
 from segmentation.models.separator_page import SeparatorPage
 
 
@@ -100,3 +101,75 @@ def test_segment_document_groups_pages_between_separators(monkeypatch):
     assert secciones[1].page_numbers == [4, 5, 6]
     assert secciones[1].total_pages == 3
     assert secciones[1].has_tables is True
+
+
+def make_section(
+    section_index: int,
+    cargo: str,
+    separator_page: int,
+    pages: list[PageResult],
+    has_tables: bool = False,
+) -> ProfessionalSection:
+    return ProfessionalSection(
+        section_index=section_index,
+        cargo=cargo,
+        cargo_raw=cargo,
+        separator_page=separator_page,
+        pages=pages,
+        total_pages=len(pages),
+        has_tables=has_tables,
+    )
+
+
+def test_consolidar_secciones_tipo_a_sin_cambios():
+    s1 = make_section(1, "Gerente de Contrato", 1, [make_page(1, "sep"), make_page(2, "a")])
+    s2 = make_section(2, "Jefe de Supervisión", 3, [make_page(3, "sep"), make_page(4, "b")])
+
+    resultado = segmenter.consolidar_secciones([s1, s2])
+
+    assert len(resultado) == 2
+    assert resultado[0].cargo == "Gerente de Contrato"
+    assert resultado[0].page_numbers == [1, 2]
+    assert resultado[1].cargo == "Jefe de Supervisión"
+    assert resultado[1].page_numbers == [3, 4]
+
+
+def test_consolidar_secciones_tipo_b_agrupa_y_ordena_paginas():
+    bloque_1 = make_section(
+        1,
+        "Gerente de Supervisión",
+        1,
+        [make_page(2, "b1 p2"), make_page(1, "b1 p1")],
+        has_tables=False,
+    )
+    bloque_2 = make_section(
+        3,
+        "Gerente de Supervisión",
+        7,
+        [make_page(8, "b2 p8", tiene_tabla=True), make_page(7, "b2 p7")],
+        has_tables=True,
+    )
+    otro = make_section(2, "Jefe de Supervisión", 4, [make_page(4, "x"), make_page(5, "y")])
+
+    resultado = segmenter.consolidar_secciones([bloque_2, otro, bloque_1])
+
+    assert len(resultado) == 2
+    assert [s.separator_page for s in resultado] == [1, 4]
+
+    gerente = resultado[0]
+    assert gerente.cargo == "Gerente de Supervisión"
+    assert gerente.page_numbers == [1, 2, 7, 8]
+    assert gerente.total_pages == 4
+    assert gerente.has_tables is True
+
+
+def test_clave_agrupacion_normaliza_numero_profesional():
+    assert segmenter._clave_agrupacion("Especialista En Estructuras N° 1") == (
+        "especialista en estructuras n°1"
+    )
+    assert segmenter._clave_agrupacion("Especialista En Estructuras N 1") == (
+        "especialista en estructuras n°1"
+    )
+    assert segmenter._clave_agrupacion("Especialista En Estructuras Nº1") == (
+        "especialista en estructuras n°1"
+    )

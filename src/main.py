@@ -257,8 +257,10 @@ def process_and_segment(
         (DocumentResult, List[ProfessionalSection])
     """
     from segmentation.segmenter import segment_document
+    from segmentation.consolidator import consolidar_secciones
     from segmentation.detector import es_candidata_separadora, evaluar_separadora
     from segmentation.output.markdown_writer import write_segmentation_report
+    from segmentation.output.consolidation_writer import write_consolidation_report
 
     base_name = Path(pdf_path).stem
     work_dir  = str(Path(output_dir or OUTPUT_DIR) / base_name)
@@ -273,6 +275,7 @@ def process_and_segment(
 
     # ── Segmentación ──────────────────────────────────────────────────────────
     secciones = segment_document(doc)
+    secciones = consolidar_secciones(secciones)
 
     # Recopilar candidatas descartadas para el reporte
     candidatas_descartadas = []
@@ -303,5 +306,10 @@ def process_and_segment(
             write_segmentation_report(doc, secciones, candidatas_descartadas, work_dir)
         except Exception as e:
             logger.warning(f"No se pudo generar reporte de segmentación: {e}")
+
+        try:
+            write_consolidation_report(doc, secciones, work_dir)
+        except Exception as e:
+            logger.warning(f"No se pudo generar reporte de profesionales: {e}")
 
     return doc, secciones

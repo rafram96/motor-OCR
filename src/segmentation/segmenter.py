@@ -1,5 +1,7 @@
 from __future__ import annotations
+from collections import defaultdict
 import logging
+import re
 import time
 from typing import List
 
@@ -10,6 +12,55 @@ from segmentation.models.separator_page import SeparatorPage
 from segmentation.models.professional_section import ProfessionalSection
 
 logger = logging.getLogger(__name__)
+
+
+def _clave_agrupacion(cargo: str) -> str:
+    """
+    Normaliza el cargo para agrupar bloques del mismo profesional.
+
+    Ejemplos:
+    - "Especialista En Estructuras N° 1" -> "especialista en estructuras n°1"
+    - "Jefe De Supervisión" -> "jefe de supervisión"
+    """
+    cargo_lower = cargo.lower().strip()
+    return re.sub(r"n[°º]?\s*(\d+)", r"n°\1", cargo_lower)
+
+
+def consolidar_secciones(secciones: List[ProfessionalSection]) -> List[ProfessionalSection]:
+    """
+    Consolida bloques repetidos del mismo profesional (cargo + número, si existe).
+
+    Si cada cargo aparece una sola vez, retorna la lista sin cambios efectivos.
+    Si hay múltiples bloques del mismo cargo, unifica sus páginas en una sección.
+    """
+    grupos = defaultdict(list)
+    for sec in secciones:
+        grupos[_clave_agrupacion(sec.cargo)].append(sec)
+
+    resultado: List[ProfessionalSection] = []
+    for bloques in grupos.values():
+        if len(bloques) == 1:
+            resultado.append(bloques[0])
+            continue
+
+        primer_bloque = min(bloques, key=lambda b: b.separator_page)
+        todas_las_paginas = sorted(
+            [p for b in bloques for p in b.pages],
+            key=lambda p: p.page_number,
+        )
+
+        consolidada = ProfessionalSection(
+            section_index=primer_bloque.section_index,
+            cargo=primer_bloque.cargo,
+            cargo_raw=primer_bloque.cargo_raw,
+            separator_page=primer_bloque.separator_page,
+            pages=todas_las_paginas,
+            total_pages=len(todas_las_paginas),
+            has_tables=any(b.has_tables for b in bloques),
+        )
+        resultado.append(consolidada)
+
+    return sorted(resultado, key=lambda s: s.separator_page)
 
 
 def _format_eta(segundos: float) -> str:
