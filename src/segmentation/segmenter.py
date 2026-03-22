@@ -7,6 +7,7 @@ from typing import List
 
 from models.document_result import DocumentResult
 from models.page_result import PageResult
+from segmentation.consolidator import _extraer_numero
 from segmentation.detector import es_candidata_separadora, evaluar_separadora
 from segmentation.models.separator_page import SeparatorPage
 from segmentation.models.professional_section import ProfessionalSection
@@ -154,6 +155,7 @@ def segment_document(doc: DocumentResult) -> List[ProfessionalSection]:
             section_index=i + 1,
             cargo=sep.cargo_normalizado,
             cargo_raw=sep.cargo_detectado,
+            numero=_extraer_numero(sep.cargo_normalizado),
             separator_page=inicio,
             pages=paginas_seccion,
             total_pages=len(paginas_seccion),
