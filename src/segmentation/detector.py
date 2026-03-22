@@ -19,12 +19,15 @@ from segmentation.config import (
     FUZZY_SCORE_MINIMO,
     CARGOS_BASE,
     NORMALIZACIONES,
+    FRASES_DESCARTE,
 )
 from segmentation.models.separator_page import SeparatorPage
 
 logger = logging.getLogger(__name__)
 
 _client: Optional[OpenAI] = None
+
+
 
 PROMPT_SEPARADORA = """
 Analiza esta imagen de un expediente de licitación pública peruana.
@@ -36,8 +39,10 @@ Responde SOLO con JSON, sin explicaciones. /no_think
 }
 
 Una página separadora ES aquella cuyo contenido principal es el cargo
-del profesional propuesto por el postor. Puede tener:
-- Solo el cargo en grande y centrado (ej: ESPECIALISTA EN ESTRUCTURAS)
+del profesional propuesto por el postor. Puede aparecer en estos formatos:
+- Cargo en grande y centrado (estilo B.1; ej: ESPECIALISTA EN ESTRUCTURAS)
+- Cargo entre líneas punteadas horizontales, texto más pequeño,
+  con número N°1 o N°2 debajo (estilo B.2/B.3)
 - El nombre del consorcio arriba y el cargo abajo
 - El cargo entre líneas decorativas con un número
 - Un sello o firma del representante del consorcio abajo
@@ -91,6 +96,11 @@ def es_candidata_separadora(page: PageResult) -> bool:
     ]
 
     if not lines_limpias:
+        return False
+
+    # Descartar páginas con frases típicas de documentos de contenido.
+    texto_lower = page.text.lower()
+    if any(frase in texto_lower for frase in FRASES_DESCARTE):
         return False
 
     # Descartar páginas con solo caracteres repetidos (!!!!!, -----, etc.)

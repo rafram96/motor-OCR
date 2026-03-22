@@ -36,6 +36,15 @@ CARGOS_BASE = [
     "Especialista TIC",
 ]
 
+FRASES_DESCARTE = [
+    "asimismo, manifiesto",
+    "me comprometo a prestar",
+    "a nombre de la nacion",
+    "el rector de la universidad",
+    "ha sido incorporado",
+    "certificado de trabajo",
+]
+
 # ── Normalización de errores OCR conocidos ────────────────────────────────────
 NORMALIZACIONES = {
     # Supervisión
