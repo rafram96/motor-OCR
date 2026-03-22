@@ -84,7 +84,7 @@ def _get_client() -> OpenAI:
 def es_candidata_separadora(page: PageResult) -> bool:
     """
     Pre-filtro rápido basado en número de líneas.
-    Las separadoras tienen 1–6 líneas. Las de contenido tienen 20–80.
+    Las separadoras suelen tener pocas líneas. Las de contenido tienen 20–80.
     Evita mandar páginas de contenido a Qwen innecesariamente.
     """
     lines = [l.strip() for l in page.lines if l.strip()]
@@ -141,8 +141,10 @@ def fuzzy_detect_cargo(texto: str) -> tuple[bool, str]:
 
     lineas = [l.strip() for l in texto.splitlines() if l.strip()]
 
-    texto_completo_limpio = " ".join(
-        l.strip() for l in texto.splitlines() if l.strip()
+    # Une todas las líneas útiles para capturar cargos partidos por OCR.
+    texto_limpio = " ".join(
+        l for l in lineas
+        if not l.isdigit() and not set(l) <= {"-", " "} and len(l) > 1
     )
 
     # Generar candidatos: texto completo + líneas individuales + pares consecutivos
@@ -156,7 +158,7 @@ def fuzzy_detect_cargo(texto: str) -> tuple[bool, str]:
         for i in range(len(lineas) - 2)
     ]
 
-    candidatos = [texto, texto_completo_limpio] + lineas + pares + triples
+    candidatos = [texto, texto_limpio] + lineas + pares + triples
 
     cargos_lower = [c.lower() for c in CARGOS_BASE]
 

@@ -1,5 +1,5 @@
 # ── Filtro de candidatas ──────────────────────────────────────────────────────
-MAX_LINEAS_SEPARADORA  = 10     # páginas con más líneas no son separadoras
+MAX_LINEAS_SEPARADORA  = 15     # páginas con más líneas no son separadoras
 MIN_LINEAS_SEPARADORA  = 1     # páginas vacías tampoco
 
 # ── Qwen ─────────────────────────────────────────────────────────────────────
@@ -43,6 +43,8 @@ FRASES_DESCARTE = [
     "el rector de la universidad",
     "ha sido incorporado",
     "certificado de trabajo",
+    "calificaciones del personal clave",
+    "experiencia del personal clave",
 ]
 
 # ── Normalización de errores OCR conocidos ────────────────────────────────────
