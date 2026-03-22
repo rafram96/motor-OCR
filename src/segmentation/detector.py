@@ -173,7 +173,7 @@ def fuzzy_detect_cargo(texto: str) -> tuple[bool, str]:
         resultado = rfprocess.extractOne(
             candidato.lower(),
             cargos_lower,
-            scorer=fuzz.partial_ratio,
+            scorer=fuzz.token_sort_ratio,
         )
         if resultado and resultado[1] >= FUZZY_SCORE_MINIMO:
             idx = cargos_lower.index(resultado[0])
