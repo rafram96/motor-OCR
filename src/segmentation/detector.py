@@ -98,17 +98,22 @@ def es_candidata_separadora(page: PageResult) -> bool:
     if not lines_limpias:
         return False
 
-    # Descartar páginas con frases típicas de documentos de contenido.
-    texto_lower = page.text.lower()
+    texto_lower = " ".join(lines_limpias).lower()
     if any(frase in texto_lower for frase in FRASES_DESCARTE):
+        logger.info(f"  DESCARTE FRASE pág {page.page_number}: {texto_lower[:60]}")
         return False
 
-    # Descartar páginas con solo caracteres repetidos (!!!!!, -----, etc.)
-    texto_limpio = " ".join(lines_limpias)
-    chars_unicos = set(texto_limpio.replace(" ", ""))
+    chars_unicos = set(texto_lower.replace(" ", ""))
     if len(chars_unicos) <= 2:
         return False
 
+    logger.info(
+        f"  CANDIDATA? pág {page.page_number}: "
+        f"lines={len(lines)}, limpias={len(lines_limpias)}, "
+        f"MAX={MAX_LINEAS_SEPARADORA}, "
+        f"pasa={MIN_LINEAS_SEPARADORA <= len(lines_limpias) <= MAX_LINEAS_SEPARADORA}, "
+        f"texto='{texto_lower[:60]}'"
+    )
     return MIN_LINEAS_SEPARADORA <= len(lines_limpias) <= MAX_LINEAS_SEPARADORA
 
 

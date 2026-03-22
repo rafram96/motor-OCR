@@ -12,10 +12,10 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from main import process_document
 
-PDF = r"D:\proyectos\motor-OCR\data\Profesionales.pdf"
+PDF = r"D:\proyectos\motor-OCR\data\profesoinales motlima corpei.pdf"
 
 # Edita esta lista in-code con las páginas que quieras procesar (base 1).
-PAGINAS = [74, 75, 84, 115, 147]
+PAGINAS = [11, 17, 20, 50, 68, 74]
 
 
 def main() -> None:

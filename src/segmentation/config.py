@@ -34,6 +34,7 @@ CARGOS_BASE = [
     "Especialista en Configuraciones Tecnologicas de la Informacion y Comunicaciones",
     "Especialista en Instalaciones de Comunicaciones",
     "Especialista TIC",
+    "Especialista de Pre Instalación de Equipamiento Hospitalario"
 ]
 
 FRASES_DESCARTE = [
