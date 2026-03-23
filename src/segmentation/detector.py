@@ -34,9 +34,12 @@ Analiza esta imagen de un expediente de licitación pública peruana.
 Responde SOLO con JSON, sin explicaciones. /no_think
 {
     "es_separadora": true/false,
-    "cargo": "cargo exacto o null",
+    "cargo": "cargo COMPLETO incluyendo N°1, N°2, etc. si aparece",
     "confianza": "alta" | "media" | "baja"
 }
+
+IMPORTANTE: Si el cargo incluye un número como N°1, N°2, N°3, inclúyelo
+en el campo cargo. Ejemplo: "Especialista en Supervisión de Estructuras N°2"
 
 Una página separadora ES aquella cuyo contenido principal es el cargo
 del profesional propuesto por el postor. Puede aparecer en estos formatos:
