@@ -95,6 +95,13 @@ def es_candidata_separadora(page: PageResult) -> bool:
         if len(l) > 2 and not l.isdigit()
     ]
 
+    if page.page_number in [11, 17, 20, 50, 68, 74]:
+        logger.info(
+            f"  DEBUG pag {page.page_number}: "
+            f"lines={len(lines)}, limpias={len(lines_limpias)}, "
+            f"texto='{page.text[:80]}'"
+        )
+
     if not lines_limpias:
         return False
 

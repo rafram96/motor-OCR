@@ -32,7 +32,7 @@ PDF = r"D:\proyectos\motor-OCR\data\profesoinales motlima corpei.pdf"
 with open(os.devnull, "w") as devnull, redirect_stderr(devnull):
     doc, secciones = process_and_segment(
         pdf_path=PDF,
-        pages=list(range(1, 92)),  # páginas 1 a 91
+        pages=list(range(1, 31)),  # páginas 1 a 30
         keep_images=True,
     )
 
