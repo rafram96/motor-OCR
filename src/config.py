@@ -36,6 +36,9 @@ PDF_IMAGE_FORMAT            = "PNG"
 # CPU servidor (i9): 3-4 | GPU servidor (RTX 5000): 2
 MAX_WORKERS                 = 4
 
+# ── Logging ────────────────────────────────────────────────────────────────────
+LOG_LEVEL                   = "DEBUG"   # DEBUG | INFO | WARNING
+
 # ── Salida ─────────────────────────────────────────────────────────────────────
 OUTPUT_DIR                  = r"D:\proyectos\infoobras\ocr_output"
 SAVE_MARKDOWN               = True

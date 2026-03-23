@@ -19,11 +19,12 @@ output_pkl = sys.argv[3]      # ruta donde guardar los PageResult serializados
 
 sys.path.insert(0, src_path)
 
+from config import LOG_LEVEL
 from engines.paddle_engine import predict
 
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, LOG_LEVEL, logging.DEBUG),
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger(__name__)

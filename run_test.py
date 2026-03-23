@@ -14,15 +14,17 @@ os.environ["GLOG_minloglevel"] = "3"
 
 warnings.filterwarnings("ignore")
 
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent / "src"))
+
+from config import LOG_LEVEL
+
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, LOG_LEVEL, logging.DEBUG),
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
 logging.getLogger("urllib3").setLevel(logging.WARNING)
 logging.getLogger("urllib3.connectionpool").setLevel(logging.WARNING)
-
-sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent / "src"))
 
 from main import process_and_segment
 
