@@ -252,7 +252,6 @@ def process_and_segment(
     """
     from segmentation.segmenter import segment_document
     from segmentation.consolidator import consolidar_secciones
-    from segmentation.detector import es_candidata_separadora, evaluar_separadora
     from segmentation.output.markdown_writer import write_segmentation_report
     from segmentation.output.consolidation_writer import write_consolidation_report
 
@@ -268,42 +267,8 @@ def process_and_segment(
     )
 
     # ── Segmentación ──────────────────────────────────────────────────────────
-    # Debug temporal
-    for p in doc.pages:
-        if p.page_number in [11, 17, 20]:
-            logger.info(
-                f"  DEBUG main pág {p.page_number}: "
-                f"engine={p.engine_used}, "
-                f"line_count={p.line_count}, "
-                f"lines={p.lines}"
-            )
-
-    secciones_raw = segment_document(doc)
-    secciones = secciones_raw
-    secciones = consolidar_secciones(secciones)
-
-    # Recopilar candidatas descartadas para el reporte
-    candidatas_descartadas = []
-    pages_ordenadas = sorted(doc.pages, key=lambda p: p.page_number)
-    total_pages = len(pages_ordenadas)
-    progreso_cada = max(1, total_pages // 10)
-    t_descartadas_start = time.time()
-
-    for idx, page in enumerate(pages_ordenadas, start=1):
-        if es_candidata_separadora(page):
-            sep = evaluar_separadora(page)
-            if not sep.es_separadora:
-                candidatas_descartadas.append(sep)
-
-        if idx == 1 or idx % progreso_cada == 0 or idx == total_pages:
-            elapsed = time.time() - t_descartadas_start
-            promedio = elapsed / idx
-            restante = max(0.0, promedio * (total_pages - idx))
-            pct = (idx / total_pages) * 100
-            logger.info(
-                f"  Segmentación (descartadas) progreso: {idx}/{total_pages} "
-                f"({pct:.1f}%), ETA {_format_eta(restante)}"
-            )
+    secciones_raw, candidatas_descartadas = segment_document(doc)
+    secciones = consolidar_secciones(secciones_raw)
 
     # ── Markdown segmentación (opcional) ──────────────────────────────────────
     if SAVE_MARKDOWN:

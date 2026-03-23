@@ -98,13 +98,6 @@ def es_candidata_separadora(page: PageResult) -> bool:
         if len(l) > 2 and not l.isdigit()
     ]
 
-    if page.page_number in [11, 17, 20, 50, 68, 74]:
-        logger.info(
-            f"  DEBUG pag {page.page_number}: "
-            f"lines={len(lines)}, limpias={len(lines_limpias)}, "
-            f"texto='{page.text[:80]}'"
-        )
-
     if not lines_limpias:
         return False
 
@@ -202,8 +195,19 @@ def _confirmar_con_qwen(page: PageResult) -> tuple[bool, str, str]:
     En caso de error retorna (False, "", "error").
     """
     try:
-        with open(page.image_path, "rb") as f:
-            b64 = base64.b64encode(f.read()).decode("utf-8")
+        from PIL import Image
+        import io
+
+        with Image.open(page.image_path) as img:
+            w, h = img.size
+            img_small = img.resize((w // 2, h // 2), Image.LANCZOS)
+            buf = io.BytesIO()
+            img_small.save(buf, format="PNG", optimize=True)
+            b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+            logger.debug(
+                f"Página {page.page_number}: imagen reducida "
+                f"{w}x{h} → {w//2}x{h//2} para Qwen"
+            )
     except Exception as e:
         logger.warning(f"Página {page.page_number}: no se pudo leer imagen — {e}")
         return False, "", "error"

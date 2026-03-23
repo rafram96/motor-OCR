@@ -3,7 +3,7 @@ from collections import defaultdict
 import logging
 import re
 import time
-from typing import List
+from typing import List, Tuple
 
 from models.document_result import DocumentResult
 from models.page_result import PageResult
@@ -77,7 +77,7 @@ def _format_eta(segundos: float) -> str:
     return f"{s}s"
 
 
-def segment_document(doc: DocumentResult) -> List[ProfessionalSection]:
+def segment_document(doc: DocumentResult) -> Tuple[List[ProfessionalSection], List[SeparatorPage]]:
     """
     Divide un DocumentResult en secciones por profesional.
 
@@ -91,19 +91,11 @@ def segment_document(doc: DocumentResult) -> List[ProfessionalSection]:
         doc: DocumentResult del motor OCR con todas las páginas.
 
     Returns:
-        Lista de ProfessionalSection. Puede estar vacía si no se detectaron
-        separadoras (expediente sin la estructura esperada).
+        (secciones, candidatas_descartadas)
+        secciones: Lista de ProfessionalSection.
+        candidatas_descartadas: Lista de SeparatorPage con es_separadora=False.
     """
     pages_ord = sorted(doc.pages, key=lambda p: p.page_number)
-
-    for p in pages_ord:
-        if p.page_number in [11, 17, 20]:
-            logger.info(
-                f"  DEBUG segmenter pag {p.page_number}: "
-                f"line_count={p.line_count}, "
-                f"engine={p.engine_used}, "
-                f"lines={p.lines[:5]}"
-            )
 
     # ── 1. Identificar separadoras ────────────────────────────────────────────
     candidatas: List[PageResult] = [
@@ -116,6 +108,7 @@ def segment_document(doc: DocumentResult) -> List[ProfessionalSection]:
     )
 
     separadoras: List[SeparatorPage] = []
+    descartadas: List[SeparatorPage] = []
     total_candidatas = len(candidatas)
     progreso_cada = max(1, total_candidatas // 10) if total_candidatas else 1
     t_candidatas = time.time()
@@ -124,6 +117,8 @@ def segment_document(doc: DocumentResult) -> List[ProfessionalSection]:
         sep = evaluar_separadora(page)
         if sep.es_separadora:
             separadoras.append(sep)
+        else:
+            descartadas.append(sep)
 
         if idx == 1 or idx % progreso_cada == 0 or idx == total_candidatas:
             elapsed = time.time() - t_candidatas
@@ -142,7 +137,7 @@ def segment_document(doc: DocumentResult) -> List[ProfessionalSection]:
             "No se detectaron separadoras — el documento puede no tener "
             "la estructura esperada o todas las candidatas fueron descartadas."
         )
-        return []
+        return [], descartadas
 
     # ── 2. Agrupar páginas entre separadoras ──────────────────────────────────
     secciones: List[ProfessionalSection] = []
@@ -181,4 +176,4 @@ def segment_document(doc: DocumentResult) -> List[ProfessionalSection]:
     logger.info(
         f"Segmentación completada: {len(secciones)} profesionales detectados"
     )
-    return secciones
+    return secciones, descartadas
