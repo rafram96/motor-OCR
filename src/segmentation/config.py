@@ -10,7 +10,7 @@ QWEN_MAX_TOKENS        = 128
 QWEN_TIMEOUT           = 60.0
 
 # ── Fallback fuzzy ────────────────────────────────────────────────────────────
-FUZZY_SCORE_MINIMO     = 85
+FUZZY_SCORE_MINIMO     = 80
 
 CARGOS_BASE = [
     "Gerente de Contrato",
@@ -35,6 +35,21 @@ CARGOS_BASE = [
     "Especialista en Instalaciones de Comunicaciones",
     "Especialista TIC",
     "Especialista de Pre Instalación de Equipamiento Hospitalario"
+    "Especialista en Supervisión de Estructuras",
+    "Especialista en Supervisión de Arquitectura",
+    "Especialista en Supervisión del Medio Ambiente",
+    "Especialista en Supervisión de Control de Calidad",
+    "Supervisión de Coordinador BIM",
+    "Especialista en Supervisión de Instalaciones Sanitarias",
+    "Especialista en Supervisión de Instalaciones Mecánicas",
+    "Especialista en Supervisión de Instalaciones Eléctricas",
+    "Especialista en Supervisión de Instalaciones Comunicaciones",
+    "Especialista en Supervisión de Geotecnia",
+    "Especialista en Supervisión de Equipamiento Hospitalario",
+    "Especialista en Supervisión de Costos Metrados y Valorizaciones",
+    "Especialista en Supervisión de la Seguridad Salud en el Trabajo",
+    "Especialista de Pre Instalación de Equipamiento Hospitalario",
+    "Gerente de Supervisión",
 ]
 
 FRASES_DESCARTE = [

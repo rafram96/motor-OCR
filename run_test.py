@@ -2,9 +2,17 @@
 import os
 import logging
 import sys
+import time
+import warnings
+from contextlib import redirect_stderr
+
+t_start = time.time()
 
 os.environ["FLAGS_use_mkldnn"] = "0"
 os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
+os.environ["GLOG_minloglevel"] = "3"
+
+warnings.filterwarnings("ignore")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,11 +28,13 @@ from main import process_and_segment
 
 PDF = r"D:\proyectos\motor-OCR\data\profesoinales motlima corpei.pdf"
 
-doc, secciones = process_and_segment(
-    pdf_path=PDF,
-    pages=list(range(1, 92)),  # páginas 1 a 91
-    keep_images=True,
-)
+# Redirige stderr temporalmente para silenciar logs C++ de Paddle/CUDA en desarrollo.
+with open(os.devnull, "w") as devnull, redirect_stderr(devnull):
+    doc, secciones = process_and_segment(
+        pdf_path=PDF,
+        pages=list(range(1, 92)),  # páginas 1 a 91
+        keep_images=True,
+    )
 
 print("\n" + "="*60)
 print(f"RESULTADO: {doc.total_pages} páginas procesadas")
@@ -36,3 +46,5 @@ print("="*60)
 print(f"\nPROFESIONALES DETECTADOS: {len(secciones)}\n")
 for sec in secciones:
     print(f"  {sec.section_index:2d}. {sec.cargo:<60} ({sec.total_pages} págs, desde pág {sec.separator_page})")
+
+print(f"\nTiempo real total: {time.time() - t_start:.1f}s")
