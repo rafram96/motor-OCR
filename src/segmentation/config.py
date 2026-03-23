@@ -61,6 +61,16 @@ FRASES_DESCARTE = [
     "certificado de trabajo",
     "calificaciones del personal clave",
     "experiencia del personal clave",
+    "b.2 experiencia",
+    "b.3 equipamiento",
+    "documentación de presentación facultativa",
+    "experiencia en la especialidad adicional",
+    "camionetas",
+    "equipo de topografía",
+    "equipamiento estratégico",
+    "sostenibilidad ambiental",
+    "integridad en la contratacion",
+    "gestión de calidad",
 ]
 
 # ── Normalización de errores OCR conocidos ────────────────────────────────────

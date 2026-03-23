@@ -37,35 +37,40 @@ Responde SOLO con JSON, sin explicaciones. /no_think
     "cargo": "cargo COMPLETO incluyendo N°1, N°2, etc. si aparece",
     "confianza": "alta" | "media" | "baja"
 }
-
 IMPORTANTE: Si el cargo incluye un número como N°1, N°2, N°3, inclúyelo
 en el campo cargo. Ejemplo: "Especialista en Supervisión de Estructuras N°2"
-
-Una página separadora ES aquella cuyo contenido principal es el cargo
-del profesional propuesto por el postor. Puede aparecer en estos formatos:
-- Cargo en grande y centrado (estilo B.1; ej: ESPECIALISTA EN ESTRUCTURAS)
+Una página separadora ES aquella cuyo contenido PRINCIPAL es el cargo
+del profesional. Puede tener ruido adicional como sellos, números de folio,
+texto del consorcio o marcas de agua — eso NO la descalifica. Los formatos
+válidos son:
+- Cargo en grande y centrado (estilo B.1)
 - Cargo entre líneas punteadas horizontales, texto más pequeño,
   con número N°1 o N°2 debajo (estilo B.2/B.3)
 - El nombre del consorcio arriba y el cargo abajo
-- El cargo entre líneas decorativas con un número
 - Un sello o firma del representante del consorcio abajo
-
-Cargos válidos típicos: GERENTE DE CONTRATO, JEFE DE SUPERVISIÓN,
-SUPERVISOR DE OBRA, ESPECIALISTA EN ESTRUCTURAS, ESPECIALISTA EN
-ARQUITECTURA, ESPECIALISTA EN INSTALACIONES SANITARIAS, ESPECIALISTA
-EN INSTALACIONES MECÁNICAS, ESPECIALISTA BIM, ESPECIALISTA EN
-EQUIPAMIENTO, ESPECIALISTA EN SEGURIDAD Y SALUD, ESPECIALISTA EN
-METRADOS Y COSTOS, ESPECIALISTA EN INSTALACIONES SANITARIAS y similares.
-
+Cargos válidos típicos: GERENTE DE SUPERVISIÓN, GERENTE DE CONTRATO,
+JEFE DE SUPERVISIÓN, SUPERVISOR DE OBRA, ESPECIALISTA EN ESTRUCTURAS,
+ESPECIALISTA EN ARQUITECTURA, ESPECIALISTA EN INSTALACIONES SANITARIAS,
+ESPECIALISTA EN INSTALACIONES MECÁNICAS, ESPECIALISTA BIM, ESPECIALISTA
+EN EQUIPAMIENTO, ESPECIALISTA EN SEGURIDAD Y SALUD, ESPECIALISTA EN
+METRADOS Y COSTOS y similares. También incluye cargos con N°1, N°2, N°3.
 Una página separadora NO ES:
 - Un diploma universitario (tiene escudo, texto "A nombre de la Nación")
 - Un certificado del CIP o de otro colegio profesional
 - Un Documento de Identidad
 - Una constancia o certificado de trabajo
+- Una página de índice o portada de sección (ej: "B.1 CALIFICACIONES
+  DEL PERSONAL CLAVE", "B.2 EXPERIENCIA DEL PERSONAL CLAVE",
+  "B.3 EQUIPAMIENTO ESTRATÉGICO", "CAMIONETAS", "EQUIPO DE TOPOGRAFÍA",
+  "DOCUMENTACIÓN DE PRESENTACIÓN FACULTATIVA",
+  "EXPERIENCIA EN LA ESPECIALIDAD ADICIONAL DEL PERSONAL CLAVE",
+  "SOSTENIBILIDAD AMBIENTAL", "INTEGRIDAD EN LA CONTRATACIÓN",
+  "GESTIÓN DE CALIDAD")
 - Una página donde el cargo principal es Rector, Decano, Secretario
-    General, Director, Representante Legal u otra autoridad institucional
+  General, Director, Representante Legal u otra autoridad institucional
 - Una página con solo sellos, firmas o páginas en blanco
 - Una página del Anexo N°16 con tablas de experiencia
+- Una empresa o consorcio (ej: "CHINA GEZHOU GROUP COMPANY LIMITED")
 """
 
 
