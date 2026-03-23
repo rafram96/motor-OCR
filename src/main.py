@@ -274,7 +274,18 @@ def process_and_segment(
     )
 
     # ── Segmentación ──────────────────────────────────────────────────────────
-    secciones = segment_document(doc)
+    # Debug temporal
+    for p in doc.pages:
+        if p.page_number in [11, 17, 20]:
+            logger.info(
+                f"  DEBUG main pág {p.page_number}: "
+                f"engine={p.engine_used}, "
+                f"line_count={p.line_count}, "
+                f"lines={p.lines}"
+            )
+
+    secciones_raw = segment_document(doc)
+    secciones = secciones_raw
     secciones = consolidar_secciones(secciones)
 
     # Recopilar candidatas descartadas para el reporte
