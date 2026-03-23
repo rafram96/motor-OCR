@@ -96,6 +96,15 @@ def segment_document(doc: DocumentResult) -> List[ProfessionalSection]:
     """
     pages_ord = sorted(doc.pages, key=lambda p: p.page_number)
 
+    for p in pages_ord:
+        if p.page_number in [11, 17, 20]:
+            logger.info(
+                f"  DEBUG segmenter pag {p.page_number}: "
+                f"line_count={p.line_count}, "
+                f"engine={p.engine_used}, "
+                f"lines={p.lines[:5]}"
+            )
+
     # ── 1. Identificar separadoras ────────────────────────────────────────────
     candidatas: List[PageResult] = [
         p for p in pages_ord if es_candidata_separadora(p)
