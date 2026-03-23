@@ -148,15 +148,9 @@ def process_document(
     ]
 
     if paginas_qwen:
-        # ── Liberar VRAM de Paddle antes de Qwen ─────────────────────────────
-        import paddle
-        paddle.device.cuda.empty_cache()
-        # También destruir la instancia singleton
-        import engines.paddle_engine as _pe
-        _pe._ocr_instance = None
-        import gc
-        gc.collect()
-        logger.info("  VRAM liberada, iniciando Qwen...")
+        # VRAM de Paddle ya fue liberada al terminar el subproceso —
+        # no necesitamos import paddle aquí (además corrompe el root logger).
+        logger.info("  VRAM liberada (subproceso terminado), iniciando Qwen...")
 
         from engines import qwen_engine
         logger.info(f"  Pasada 2: Qwen fallback para {len(paginas_qwen)} páginas...")
