@@ -57,10 +57,12 @@ CARGOS_BASE = [
 PATRONES_CARGO = [
     "gerente",
     "jefe",
-    "supervisor",
+    "supervisor",      # cubre "Supervisión" y "Supervisor"
     "especialista",
     "coordinador",
     "residente",
+    "pre instalacion", # ← agregar
+    "preinstalacion",  # ← variante sin espacio
 ]
 
 # ── Lista negra: frases que nunca son separadoras aunque contengan cargo ──────
