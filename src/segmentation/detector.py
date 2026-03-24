@@ -124,7 +124,7 @@ def es_candidata_separadora(page: PageResult) -> bool:
         logger.info(f"  DESCARTE FRASE pág {page.page_number}: {texto_junto[:60]}")
         return False
 
-    chars_unicos = set(texto_lower.replace(" ", ""))
+    chars_unicos = set(texto_norm.replace(" ", ""))
     if len(chars_unicos) <= 2:
         return False
 
