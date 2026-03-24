@@ -17,8 +17,8 @@ PADDLE_DET_THRESH           = 0.3
 PADDLE_DET_BOX_THRESH       = 0.3
 
 # ── Umbrales de decisión ───────────────────────────────────────────────────────
-UMBRAL_CONFIANZA_PROMEDIO   = 0.80   # conf_promedio < esto → fallback qwen
-UMBRAL_TASA_DESCARTE        = 0.45   # tasa_descarte > esto → fallback qwen
+UMBRAL_CONFIANZA_PROMEDIO   = 0.85   # conf_promedio < esto → fallback qwen
+UMBRAL_TASA_DESCARTE        = 0.35   # tasa_descarte > esto → fallback qwen
 UMBRAL_CONFIANZA_LINEA      = 0.85   # para marcar líneas individuales como bajas
 
 # ── Qwen-VL (Ollama) ───────────────────────────────────────────────────────────

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /c/Users/Holbi/Documents/Freelance/proyectos/motor-OCR -type d -not -path */__pycache__*)"
+    ]
+  }
+}
