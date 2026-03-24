@@ -3,6 +3,7 @@ import base64
 import json
 import logging
 import time
+import unicodedata
 from typing import Optional
 
 from openai import OpenAI
@@ -27,6 +28,13 @@ logger = logging.getLogger(__name__)
 
 _client: Optional[OpenAI] = None
 
+
+def _strip_tildes(texto: str) -> str:
+    """Elimina tildes/acentos para comparación robusta."""
+    return "".join(
+        c for c in unicodedata.normalize("NFD", texto.lower())
+        if unicodedata.category(c) != "Mn"
+    )
 
 
 PROMPT_SEPARADORA = """
@@ -106,9 +114,14 @@ def es_candidata_separadora(page: PageResult) -> bool:
     if not lines_limpias:
         return False
 
-    texto_lower = " ".join(lines_limpias).lower()
-    if any(frase in texto_lower for frase in FRASES_DESCARTE):
-        logger.info(f"  DESCARTE FRASE pág {page.page_number}: {texto_lower[:60]}")
+    # Texto muy corto o solo ruido numérico → no es separadora
+    texto_junto = " ".join(lines_limpias)
+    if len(texto_junto.strip()) < 10:
+        return False
+
+    texto_norm = _strip_tildes(texto_junto)
+    if any(_strip_tildes(frase) in texto_norm for frase in FRASES_DESCARTE):
+        logger.info(f"  DESCARTE FRASE pág {page.page_number}: {texto_junto[:60]}")
         return False
 
     chars_unicos = set(texto_lower.replace(" ", ""))

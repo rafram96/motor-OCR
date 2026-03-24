@@ -65,6 +65,7 @@ FRASES_DESCARTE = [
     "b.3 equipamiento",
     "documentación de presentación facultativa",
     "experiencia en la especialidad adicional",
+    "a. experiencia",
     "camionetas",
     "equipo de topografía",
     "equipamiento estratégico",
