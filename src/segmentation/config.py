@@ -67,7 +67,7 @@ FRASES_DESCARTE = [
     "experiencia en la especialidad adicional",
     "a. experiencia",
     "camionetas",
-    "equipo de topografía",
+    "equipo de topografia",
     "equipamiento estratégico",
     "sostenibilidad ambiental",
     "integridad en la contratacion",

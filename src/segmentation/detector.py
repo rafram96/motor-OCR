@@ -120,6 +120,7 @@ def es_candidata_separadora(page: PageResult) -> bool:
         return False
 
     texto_norm = _strip_tildes(texto_junto)
+    logger.info(f"  FRASES CHECK pág {page.page_number}: texto_norm='{texto_norm[:80]}'")
     if any(_strip_tildes(frase) in texto_norm for frase in FRASES_DESCARTE):
         logger.info(f"  DESCARTE FRASE pág {page.page_number}: {texto_junto[:60]}")
         return False
