@@ -133,7 +133,7 @@ def es_candidata_separadora(page: PageResult) -> bool:
         f"lines={len(lines)}, limpias={len(lines_limpias)}, "
         f"MAX={MAX_LINEAS_SEPARADORA}, "
         f"pasa={MIN_LINEAS_SEPARADORA <= len(lines_limpias) <= MAX_LINEAS_SEPARADORA}, "
-        f"texto='{texto_lower[:60]}'"
+        f"texto='{texto_norm[:60]}'"
     )
     return MIN_LINEAS_SEPARADORA <= len(lines_limpias) <= MAX_LINEAS_SEPARADORA
 
@@ -145,11 +145,11 @@ def normalizar_cargo(cargo_raw: str) -> str:
     Corrige errores tipográficos de OCR y aplica title-case.
     Opera en lowercase para evitar problemas de case antes del reemplazo.
     """
-    texto_lower = cargo_raw.strip().lower()
+    texto_norm = cargo_raw.strip().lower()
     for error, correcto in NORMALIZACIONES.items():
-        if error in texto_lower:
-            texto_lower = texto_lower.replace(error, correcto.lower())
-    return texto_lower.title()
+        if error in texto_norm:
+            texto_norm = texto_norm.replace(error, correcto.lower())
+    return texto_norm.title()
 
 
 # ── Fallback fuzzy ────────────────────────────────────────────────────────────
