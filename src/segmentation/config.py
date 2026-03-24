@@ -52,6 +52,18 @@ CARGOS_BASE = [
     "Gerente de Supervisión",
 ]
 
+# ── Lista blanca: palabras clave que DEBEN aparecer en una separadora ─────────
+# Si el texto de la página no contiene ninguna de estas → no es separadora.
+PATRONES_CARGO = [
+    "gerente",
+    "jefe",
+    "supervisor",
+    "especialista",
+    "coordinador",
+    "residente",
+]
+
+# ── Lista negra: frases que nunca son separadoras aunque contengan cargo ──────
 FRASES_DESCARTE = [
     "asimismo, manifiesto",
     "me comprometo a prestar",
@@ -61,26 +73,6 @@ FRASES_DESCARTE = [
     "certificado de trabajo",
     "calificaciones del personal clave",
     "experiencia del personal clave",
-    "b.2 experiencia",
-    "b.3 equipamiento",
-    "documentación de presentación facultativa",
-    "experiencia en la especialidad adicional",
-    "a. experiencia",
-    "camionetas",
-    "equipo de topografia",
-    "equipamiento estratégico",
-    "sostenibilidad ambiental",
-    "integridad en la contratacion",
-    "gestión de calidad",
-    "equipo topografia",        # en lugar de "equipo de topografía"
-    "equipamiento estrategico", # ya estaba pero sin tilde
-    "experiencia especialidad adicional",  # en lugar de "experiencia en la especialidad adicional"
-    "documentacion presentacion facultativa",  # en lugar de "documentación de presentación facultativa"
-    "a. experiencia",
-    "camionetas",
-    "sostenibilidad ambiental",
-    "integridad en la contratacion",
-    "gestion de calidad",
 ]
 
 # ── Normalización de errores OCR conocidos ────────────────────────────────────

@@ -20,6 +20,7 @@ from segmentation.config import (
     FUZZY_SCORE_MINIMO,
     CARGOS_BASE,
     NORMALIZACIONES,
+    PATRONES_CARGO,
     FRASES_DESCARTE,
 )
 from segmentation.models.separator_page import SeparatorPage
@@ -120,7 +121,13 @@ def es_candidata_separadora(page: PageResult) -> bool:
         return False
 
     texto_norm = _strip_tildes(texto_junto)
-    logger.info(f"  FRASES CHECK pág {page.page_number}: texto_norm='{texto_norm[:80]}'")
+
+    # Lista blanca: si no contiene ningún patrón de cargo → descartar
+    if not any(_strip_tildes(p) in texto_norm for p in PATRONES_CARGO):
+        logger.info(f"  DESCARTE PATRON pág {page.page_number}: sin patrón de cargo — '{texto_junto[:60]}'")
+        return False
+
+    # Lista negra: frases que nunca son separadoras aunque contengan cargo
     if any(_strip_tildes(frase) in texto_norm for frase in FRASES_DESCARTE):
         logger.info(f"  DESCARTE FRASE pág {page.page_number}: {texto_junto[:60]}")
         return False
