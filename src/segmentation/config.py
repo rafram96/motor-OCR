@@ -72,6 +72,15 @@ FRASES_DESCARTE = [
     "sostenibilidad ambiental",
     "integridad en la contratacion",
     "gestión de calidad",
+    "equipo topografia",        # en lugar de "equipo de topografía"
+    "equipamiento estrategico", # ya estaba pero sin tilde
+    "experiencia especialidad adicional",  # en lugar de "experiencia en la especialidad adicional"
+    "documentacion presentacion facultativa",  # en lugar de "documentación de presentación facultativa"
+    "a. experiencia",
+    "camionetas",
+    "sostenibilidad ambiental",
+    "integridad en la contratacion",
+    "gestion de calidad",
 ]
 
 # ── Normalización de errores OCR conocidos ────────────────────────────────────
