@@ -21,6 +21,7 @@ from segmentation.config import (
     CARGOS_BASE,
     NORMALIZACIONES,
     PATRONES_CARGO,
+    PATRONES_DELIMITADOR,
     FRASES_DESCARTE,
 )
 from segmentation.models.separator_page import SeparatorPage
@@ -144,6 +145,30 @@ def es_candidata_separadora(page: PageResult) -> bool:
         f"texto='{texto_norm[:60]}'"
     )
     return MIN_LINEAS_SEPARADORA <= len(lines_limpias) <= MAX_LINEAS_SEPARADORA
+
+
+def es_delimitador_bloque(page: PageResult) -> bool:
+    """
+    Detecta páginas que son headers de bloque temático (ej: "B.2 EXPERIENCIA
+    DEL PERSONAL CLAVE"). Estas páginas no son separadoras de profesional pero
+    sí marcan el fin del profesional anterior.
+
+    A diferencia de es_candidata_separadora, no filtra por densidad de líneas
+    porque estas páginas suelen tener muchas líneas de ruido (guiones, etc.).
+    Solo mira el texto significativo.
+    """
+    texto_completo = _strip_tildes(" ".join(page.lines))
+    if not texto_completo.strip():
+        return False
+
+    for patron in PATRONES_DELIMITADOR:
+        if _strip_tildes(patron) in texto_completo:
+            logger.debug(
+                f"  DELIMITADOR pág {page.page_number}: "
+                f"matchea '{patron}'"
+            )
+            return True
+    return False
 
 
 # ── Normalización de cargos ───────────────────────────────────────────────────

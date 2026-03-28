@@ -8,7 +8,7 @@ from typing import List, Tuple
 from models.document_result import DocumentResult
 from models.page_result import PageResult
 from segmentation.consolidator import _extraer_numero
-from segmentation.detector import es_candidata_separadora, evaluar_separadora
+from segmentation.detector import es_candidata_separadora, es_delimitador_bloque, evaluar_separadora
 from segmentation.models.separator_page import SeparatorPage
 from segmentation.models.professional_section import ProfessionalSection
 
@@ -173,12 +173,25 @@ def segment_document(doc: DocumentResult) -> Tuple[List[ProfessionalSection], Li
             f"[{sep.metodo}]"
         )
 
-    # ── 3. Recortar secciones usando descartadas como delimitadores ────────────
-    # Las candidatas descartadas (ej: "B.2 EXPERIENCIA DEL PERSONAL CLAVE")
-    # no son separadoras de profesional pero sí marcan fin de bloque temático.
-    # Si una descartada cae dentro de una sección, recortamos ahí.
-    if descartadas:
-        pags_descartadas = sorted(d.page_number for d in descartadas)
+    # ── 3. Recortar secciones usando delimitadores de bloque ────────────────────
+    # Recopilar puntos de corte de dos fuentes:
+    # a) Candidatas descartadas (páginas con pocas líneas que no son separadoras)
+    # b) Delimitadores de bloque (ej: "B.2 EXPERIENCIA DEL PERSONAL CLAVE")
+    #    que pueden tener muchas líneas de ruido y no pasan el filtro de densidad
+    pags_corte: set[int] = set()
+
+    # (a) Descartadas
+    for d in descartadas:
+        pags_corte.add(d.page_number)
+
+    # (b) Delimitadores de bloque (escanea TODAS las páginas)
+    for p in pages_ord:
+        if p.page_number not in pags_corte and es_delimitador_bloque(p):
+            pags_corte.add(p.page_number)
+
+    if pags_corte:
+        pags_corte_ord = sorted(pags_corte)
+        logger.info(f"Puntos de corte detectados: {pags_corte_ord}")
 
         for seccion in secciones:
             if not seccion.pages:
@@ -187,12 +200,12 @@ def segment_document(doc: DocumentResult) -> Tuple[List[ProfessionalSection], Li
             pag_inicio = seccion.pages[0].page_number
             pag_fin = seccion.pages[-1].page_number
 
-            # Buscar la primera descartada dentro del rango de esta sección
+            # Buscar el primer punto de corte dentro del rango de esta sección
             # (debe ser posterior a la separadora, no la separadora misma)
             corte = None
-            for pd in pags_descartadas:
-                if pag_inicio < pd <= pag_fin:
-                    corte = pd
+            for pc in pags_corte_ord:
+                if pag_inicio < pc <= pag_fin:
+                    corte = pc
                     break
 
             if corte is not None:

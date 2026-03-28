@@ -65,6 +65,20 @@ PATRONES_CARGO = [
     "preinstalacion",  # ← variante sin espacio
 ]
 
+# ── Delimitadores de bloque temático ──────────────────────────────────────────
+# Frases que marcan inicio de un bloque temático (B.1, B.2, B.3, etc.).
+# No son separadoras de profesional pero sí marcan fin del profesional anterior.
+PATRONES_DELIMITADOR = [
+    "calificaciones del personal clave",
+    "experiencia del personal clave",
+    "equipamiento estrategico",
+    "documentacion de presentacion",
+    "experiencia en la especialidad adicional",
+    "sostenibilidad ambiental",
+    "integridad en la contratacion",
+    "gestion de calidad",
+]
+
 # ── Lista negra: frases que nunca son separadoras aunque contengan cargo ──────
 FRASES_DESCARTE = [
     "asimismo, manifiesto",
