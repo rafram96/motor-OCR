@@ -147,17 +147,31 @@ def es_candidata_separadora(page: PageResult) -> bool:
     return MIN_LINEAS_SEPARADORA <= len(lines_limpias) <= MAX_LINEAS_SEPARADORA
 
 
+MAX_LINEAS_DELIMITADOR = 30  # más permisivo que separadoras (15) por las líneas de ruido
+
+
 def es_delimitador_bloque(page: PageResult) -> bool:
     """
     Detecta páginas que son headers de bloque temático (ej: "B.2 EXPERIENCIA
     DEL PERSONAL CLAVE"). Estas páginas no son separadoras de profesional pero
     sí marcan el fin del profesional anterior.
 
-    A diferencia de es_candidata_separadora, no filtra por densidad de líneas
-    porque estas páginas suelen tener muchas líneas de ruido (guiones, etc.).
-    Solo mira el texto significativo.
+    Usa un filtro de densidad más permisivo que es_candidata_separadora
+    (30 líneas significativas vs 15) porque estas páginas pueden tener
+    muchas líneas de ruido (guiones, etc.). Pero filtra páginas de contenido
+    denso (40+ líneas) donde la frase puede aparecer incidentalmente.
     """
-    texto_completo = _strip_tildes(" ".join(page.lines))
+    # Filtro de densidad: solo páginas con pocas líneas significativas
+    lines = [l.strip() for l in page.lines if l.strip()]
+    lines_significativas = [
+        l for l in lines
+        if len(l) > 3 and not l.isdigit() and not set(l.replace(" ", "")) <= {"-", ".", "—", "*", "="}
+    ]
+
+    if len(lines_significativas) > MAX_LINEAS_DELIMITADOR:
+        return False
+
+    texto_completo = _strip_tildes(" ".join(lines))
     if not texto_completo.strip():
         return False
 
@@ -165,7 +179,7 @@ def es_delimitador_bloque(page: PageResult) -> bool:
         if _strip_tildes(patron) in texto_completo:
             logger.debug(
                 f"  DELIMITADOR pág {page.page_number}: "
-                f"matchea '{patron}'"
+                f"matchea '{patron}' (lines_sig={len(lines_significativas)})"
             )
             return True
     return False
