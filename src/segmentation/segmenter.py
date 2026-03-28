@@ -173,6 +173,43 @@ def segment_document(doc: DocumentResult) -> Tuple[List[ProfessionalSection], Li
             f"[{sep.metodo}]"
         )
 
+    # ── 3. Recortar secciones usando descartadas como delimitadores ────────────
+    # Las candidatas descartadas (ej: "B.2 EXPERIENCIA DEL PERSONAL CLAVE")
+    # no son separadoras de profesional pero sí marcan fin de bloque temático.
+    # Si una descartada cae dentro de una sección, recortamos ahí.
+    if descartadas:
+        pags_descartadas = sorted(d.page_number for d in descartadas)
+
+        for seccion in secciones:
+            if not seccion.pages:
+                continue
+
+            pag_inicio = seccion.pages[0].page_number
+            pag_fin = seccion.pages[-1].page_number
+
+            # Buscar la primera descartada dentro del rango de esta sección
+            # (debe ser posterior a la separadora, no la separadora misma)
+            corte = None
+            for pd in pags_descartadas:
+                if pag_inicio < pd <= pag_fin:
+                    corte = pd
+                    break
+
+            if corte is not None:
+                paginas_antes = [
+                    p for p in seccion.pages if p.page_number < corte
+                ]
+                recortadas = len(seccion.pages) - len(paginas_antes)
+                seccion.pages = paginas_antes
+                seccion.total_pages = len(paginas_antes)
+                seccion.has_tables = any(p.tiene_tabla for p in paginas_antes)
+
+                logger.info(
+                    f"  Recorte sección '{seccion.cargo}': "
+                    f"pág {corte} es delimitador, "
+                    f"eliminadas {recortadas} págs → quedan {seccion.total_pages}"
+                )
+
     logger.info(
         f"Segmentación completada: {len(secciones)} profesionales detectados"
     )
