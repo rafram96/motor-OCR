@@ -7,7 +7,6 @@ No modificar: este archivo es generado y mantenido por extractor-Bases_TDR.
 
 import json
 import logging
-import pickle
 import sys
 from pathlib import Path
 
@@ -44,9 +43,20 @@ if __name__ == "__main__":
             print(f"[subprocess_wrapper] Iniciando OCR (mode=ocr_only) con PDF: {pdf_name}")
             doc = process_document(**args)
 
-            # Guardar solo DocumentResult
-            with open(results_file, "wb") as f:
-                pickle.dump(doc, f)
+            # Serializar DocumentResult a JSON (evita problemas de pickle con imports)
+            result_data = {
+                "mode": "ocr_only",
+                "total_pages": doc.total_pages,
+                "pages_paddle": doc.pages_paddle,
+                "pages_qwen": doc.pages_qwen,
+                "pages_error": doc.pages_error,
+                "conf_promedio_documento": doc.conf_promedio_documento,
+                "tiempo_total": doc.tiempo_total,
+                "full_text": doc.full_text,
+            }
+
+            with open(results_file, "w", encoding="utf-8") as f:
+                json.dump(result_data, f, ensure_ascii=False)
 
             print(
                 f"[subprocess_wrapper] OK: {doc.total_pages} páginas procesadas "
@@ -58,9 +68,32 @@ if __name__ == "__main__":
             print(f"[subprocess_wrapper] Iniciando OCR + Segmentación con PDF: {pdf_name}")
             doc, secciones = process_and_segment(**args)
 
-            # Guardar (DocumentResult, List[ProfessionalSection])
-            with open(results_file, "wb") as f:
-                pickle.dump((doc, secciones), f)
+            # Serializar a JSON
+            result_data = {
+                "mode": "segmentation",
+                "doc": {
+                    "total_pages": doc.total_pages,
+                    "pages_paddle": doc.pages_paddle,
+                    "pages_qwen": doc.pages_qwen,
+                    "pages_error": doc.pages_error,
+                    "conf_promedio_documento": doc.conf_promedio_documento,
+                    "tiempo_total": doc.tiempo_total,
+                    "full_text": doc.full_text,
+                },
+                "secciones": [
+                    {
+                        "section_index": sec.section_index,
+                        "cargo": sec.cargo,
+                        "numero": sec.numero,
+                        "total_pages": sec.total_pages,
+                        "full_text": sec.full_text,
+                    }
+                    for sec in secciones
+                ],
+            }
+
+            with open(results_file, "w", encoding="utf-8") as f:
+                json.dump(result_data, f, ensure_ascii=False)
 
             print(
                 f"[subprocess_wrapper] OK: {doc.total_pages} páginas, {len(secciones)} profesionales "
