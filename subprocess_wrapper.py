@@ -84,8 +84,15 @@ if __name__ == "__main__":
                     {
                         "section_index": sec.section_index,
                         "cargo": sec.cargo,
+                        "cargo_raw": sec.cargo_raw,
                         "numero": sec.numero,
                         "total_pages": sec.total_pages,
+                        "page_numbers": sec.page_numbers,
+                        "bloques_origen": [
+                            {"start": b.start, "end": b.end}
+                            for b in sec.bloques_origen
+                        ],
+                        "es_tipo_b": sec.es_tipo_b,
                         "full_text": sec.full_text,
                     }
                     for sec in secciones
