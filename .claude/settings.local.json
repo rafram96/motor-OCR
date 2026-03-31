@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find /c/Users/Holbi/Documents/Freelance/proyectos/motor-OCR -type d -not -path */__pycache__*)"
+      "Bash(find /c/Users/Holbi/Documents/Freelance/proyectos/motor-OCR -type d -not -path */__pycache__*)",
+      "Bash(xargs grep:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(/dev/null find:*)"
     ]
   }
 }

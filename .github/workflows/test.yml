@@ -11,16 +11,14 @@ jobs:
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
-      
+
       - name: Sincronizar dependencias
-        run: |
-          D:\proyectos\motor-OCR\venv\Scripts\python.exe -m pip install -r requirements.txt --extra-index-url https://www.paddlepaddle.org.cn/packages/stable/cu126/
+        run: uv sync --extra-index-url https://www.paddlepaddle.org.cn/packages/stable/cu126/
         shell: powershell
 
       - name: Correr tests
         env:
           OLLAMA_HOST: http://localhost:11434
           PYTHONPATH: ${{ github.workspace }}\src
-        run: |
-          D:\proyectos\motor-OCR\venv\Scripts\python.exe -m pytest tests\ -v --tb=short
+        run: uv run pytest tests\ -v --tb=short
         shell: powershell
