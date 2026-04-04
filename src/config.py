@@ -12,7 +12,6 @@ PADDLE_LANG                 = "es"
 PADDLE_USE_TEXTLINE_ORIENT  = True
 PADDLE_USE_DOC_ORIENT       = True
 PADDLE_USE_DOC_UNWARPING    = True
-PADDLE_USE_LAYOUT_ANALYSIS  = True    # detecta regiones (texto, tabla, figura) para mejor orden de lectura
 PADDLE_REC_SCORE_THRESH     = 0.5
 PADDLE_DET_THRESH           = 0.3
 PADDLE_DET_BOX_THRESH       = 0.3
