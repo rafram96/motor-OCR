@@ -10,7 +10,8 @@ QWEN_MAX_TOKENS        = 128
 QWEN_TIMEOUT           = 60.0
 
 # ── Fallback fuzzy ────────────────────────────────────────────────────────────
-FUZZY_SCORE_MINIMO     = 80
+FUZZY_SCORE_MINIMO     = 80    # mínimo para aceptar como fuzzy_fallback (post-Qwen)
+FUZZY_SCORE_DIRECTO    = 90    # mínimo para aceptar directo sin llamar a Qwen
 
 CARGOS_BASE = [
     "Gerente de Contrato",
@@ -34,7 +35,7 @@ CARGOS_BASE = [
     "Especialista en Configuraciones Tecnologicas de la Informacion y Comunicaciones",
     "Especialista en Instalaciones de Comunicaciones",
     "Especialista TIC",
-    "Especialista de Pre Instalación de Equipamiento Hospitalario"
+    "Especialista de Pre Instalación de Equipamiento Hospitalario",
     "Especialista en Supervisión de Estructuras",
     "Especialista en Supervisión de Arquitectura",
     "Especialista en Supervisión del Medio Ambiente",

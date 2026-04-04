@@ -1,5 +1,6 @@
 from __future__ import annotations
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 import re
 import time
@@ -110,25 +111,46 @@ def segment_document(doc: DocumentResult) -> Tuple[List[ProfessionalSection], Li
     separadoras: List[SeparatorPage] = []
     descartadas: List[SeparatorPage] = []
     total_candidatas = len(candidatas)
-    progreso_cada = max(1, total_candidatas // 10) if total_candidatas else 1
     t_candidatas = time.time()
 
-    for idx, page in enumerate(candidatas, start=1):
-        sep = evaluar_separadora(page)
+    # Evaluar candidatas en paralelo (llamadas a Qwen son I/O-bound)
+    SEG_WORKERS = 3
+    resultados_sep: List[SeparatorPage] = []
+
+    with ThreadPoolExecutor(max_workers=SEG_WORKERS) as pool:
+        futuros = {
+            pool.submit(evaluar_separadora, page): page.page_number
+            for page in candidatas
+        }
+        done_count = 0
+        progreso_cada = max(1, total_candidatas // 10) if total_candidatas else 1
+
+        for futuro in as_completed(futuros):
+            done_count += 1
+            try:
+                sep = futuro.result()
+            except Exception as e:
+                pn = futuros[futuro]
+                logger.error(f"  Error evaluando candidata pág {pn}: {e}")
+                continue
+            resultados_sep.append(sep)
+
+            if done_count == 1 or done_count % progreso_cada == 0 or done_count == total_candidatas:
+                elapsed = time.time() - t_candidatas
+                promedio = elapsed / done_count
+                restante = max(0.0, promedio * (total_candidatas - done_count))
+                pct = (done_count / total_candidatas) * 100 if total_candidatas else 100.0
+                logger.info(
+                    f"Segmentación progreso (confirmación): {done_count}/{total_candidatas} "
+                    f"({pct:.1f}%), ETA {_format_eta(restante)}"
+                )
+
+    # Clasificar y ordenar por page_number para mantener orden determinista
+    for sep in sorted(resultados_sep, key=lambda s: s.page_number):
         if sep.es_separadora:
             separadoras.append(sep)
         else:
             descartadas.append(sep)
-
-        if idx == 1 or idx % progreso_cada == 0 or idx == total_candidatas:
-            elapsed = time.time() - t_candidatas
-            promedio = elapsed / idx
-            restante = max(0.0, promedio * (total_candidatas - idx))
-            pct = (idx / total_candidatas) * 100 if total_candidatas else 100.0
-            logger.info(
-                f"Segmentación progreso (confirmación): {idx}/{total_candidatas} "
-                f"({pct:.1f}%), ETA {_format_eta(restante)}"
-            )
 
     logger.info(f"Separadoras confirmadas: {len(separadoras)}")
 

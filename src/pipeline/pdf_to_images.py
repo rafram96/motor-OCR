@@ -4,9 +4,10 @@ import time
 from pathlib import Path
 from typing import List, Optional
 
-from pdf2image import convert_from_path
+from pdf2image import convert_from_path, pdfinfo_from_path
+from PIL import ImageEnhance
 
-from config import PDF_DPI, PDF_IMAGE_FORMAT, POPPLER_PATH
+from config import PDF_DPI, PDF_IMAGE_FORMAT, PDF_JPEG_QUALITY, POPPLER_PATH, PDF_BATCH_SIZE, IMAGE_ENHANCE_CONTRAST
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,20 @@ def _format_eta(segundos: float) -> str:
     if m > 0:
         return f"{m}m{s:02d}s"
     return f"{s}s"
+
+
+def _enhance(img):
+    """Aplica mejora de contraste si está habilitada en config."""
+    if IMAGE_ENHANCE_CONTRAST != 1.0:
+        return ImageEnhance.Contrast(img).enhance(IMAGE_ENHANCE_CONTRAST)
+    return img
+
+
+def _save_kwargs() -> dict:
+    """Kwargs extra para img.save() según el formato configurado."""
+    if PDF_IMAGE_FORMAT.upper() == "JPEG":
+        return {"quality": PDF_JPEG_QUALITY}
+    return {}
 
 
 def pdf_to_images(
@@ -73,9 +88,10 @@ def pdf_to_images(
                     poppler_path=POPPLER_PATH
                 )
                 if imgs:
+                    img = _enhance(imgs[0])
                     filename = f"pagina_{page_num:04d}.{PDF_IMAGE_FORMAT.lower()}"
                     ruta = pages_dir / filename
-                    imgs[0].save(str(ruta), PDF_IMAGE_FORMAT)
+                    img.save(str(ruta), PDF_IMAGE_FORMAT, **_save_kwargs())
                     image_paths.append(str(ruta.resolve()))
                     logger.debug(f"  ✓ Página {page_num} → {filename}")
                 else:
@@ -93,29 +109,54 @@ def pdf_to_images(
                     f"ETA {_format_eta(restante)}"
                 )
     else:
-        # Extraer todas las páginas de una vez (más eficiente)
+        # Extraer todas las páginas en batches para no explotar RAM
         logger.info(f"Extrayendo todas las páginas de {os.path.basename(pdf_path)}")
         try:
-            imgs = convert_from_path(pdf_path, dpi=dpi, poppler_path=POPPLER_PATH)
-            total = len(imgs)
-            progreso_cada = max(1, total // 10) if total else 1
-            for i, img in enumerate(imgs, start=1):
-                filename = f"pagina_{i:04d}.{PDF_IMAGE_FORMAT.lower()}"
+            info = pdfinfo_from_path(pdf_path, poppler_path=POPPLER_PATH)
+            total = int(info["Pages"])
+        except Exception as e:
+            raise RuntimeError(f"Error obteniendo info del PDF: {e}") from e
+
+        logger.info(f"  {total} páginas detectadas, batch_size={PDF_BATCH_SIZE}")
+        global_idx = 0
+        progreso_cada = max(1, total // 10) if total else 1
+
+        for batch_start in range(1, total + 1, PDF_BATCH_SIZE):
+            batch_end = min(batch_start + PDF_BATCH_SIZE - 1, total)
+            try:
+                imgs = convert_from_path(
+                    pdf_path,
+                    dpi=dpi,
+                    first_page=batch_start,
+                    last_page=batch_end,
+                    poppler_path=POPPLER_PATH,
+                )
+            except Exception as e:
+                logger.error(f"  ✗ Batch {batch_start}-{batch_end} falló: {e}")
+                continue
+
+            for i, img in enumerate(imgs):
+                page_num = batch_start + i
+                global_idx += 1
+                img = _enhance(img)
+                filename = f"pagina_{page_num:04d}.{PDF_IMAGE_FORMAT.lower()}"
                 ruta = pages_dir / filename
-                img.save(str(ruta), PDF_IMAGE_FORMAT)
+                img.save(str(ruta), PDF_IMAGE_FORMAT, **_save_kwargs())
                 image_paths.append(str(ruta.resolve()))
-                if i == 1 or i % progreso_cada == 0 or i == total:
+
+                if global_idx == 1 or global_idx % progreso_cada == 0 or global_idx == total:
                     elapsed = time.time() - t_start
-                    promedio = elapsed / i
-                    restante = max(0.0, promedio * (total - i))
-                    pct = (i / total) * 100 if total else 100.0
+                    promedio = elapsed / global_idx
+                    restante = max(0.0, promedio * (total - global_idx))
+                    pct = (global_idx / total) * 100 if total else 100.0
                     logger.info(
-                        f"Guardado de imágenes progreso: {i}/{total} ({pct:.1f}%), "
+                        f"Guardado de imágenes progreso: {global_idx}/{total} ({pct:.1f}%), "
                         f"ETA {_format_eta(restante)}"
                     )
-            logger.info(f"  ✓ {len(imgs)} páginas extraídas")
-        except Exception as e:
-            raise RuntimeError(f"Error convirtiendo PDF: {e}") from e
+
+            del imgs  # libera RAM del batch
+
+        logger.info(f"  ✓ {len(image_paths)} páginas extraídas")
 
     if not image_paths:
         raise RuntimeError(f"No se extrajo ninguna imagen de {pdf_path}")

@@ -103,9 +103,15 @@ def extract_text(
                             {
                                 "type": "text",
                                 "text": (
-                                    "Extrae todo el texto de esta imagen de documento "
-                                    "escaneado peruano. Devuelve solo el texto en el "
-                                    "orden correcto de lectura, sin comentarios. /no_think"
+                                    "Extrae todo el texto de esta imagen de documento escaneado peruano. "
+                                    "Reglas: "
+                                    "1) Orden de lectura: izquierda a derecha, arriba a abajo. "
+                                    "Si hay columnas, extrae columna izquierda completa primero, luego la derecha. "
+                                    "2) Tablas: reproduce como markdown con | columna | columna |. "
+                                    "3) Ignora marcas de agua, sellos superpuestos, firmas y ruido de fondo. "
+                                    "4) No inventes texto que no se ve en la imagen. "
+                                    "5) Devuelve solo el texto extraido, sin comentarios ni explicaciones. "
+                                    "/no_think"
                                 ),
                             },
                         ],

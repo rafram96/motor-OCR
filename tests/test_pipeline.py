@@ -127,10 +127,18 @@ def test_pdf_to_images_all_pages(monkeypatch, tmp_path):
     pdf_file.write_bytes(b"pdf")
     calls = []
 
-    def fake_convert_from_path(pdf_path, dpi, **kwargs):
-        calls.append((pdf_path, dpi))
-        return [DummyImage("one"), DummyImage("two")]
+    def fake_pdfinfo(pdf_path, poppler_path=None):
+        return {"Pages": "2"}
 
+    def fake_convert_from_path(pdf_path, dpi, first_page=None, last_page=None, **kwargs):
+        calls.append((pdf_path, dpi, first_page, last_page))
+        # Retorna imágenes para el rango solicitado
+        imgs = []
+        for p in range(first_page, last_page + 1):
+            imgs.append(DummyImage(f"page-{p}"))
+        return imgs
+
+    monkeypatch.setattr(pdf_to_images_module, "pdfinfo_from_path", fake_pdfinfo)
     monkeypatch.setattr(pdf_to_images_module, "convert_from_path", fake_convert_from_path)
 
     paths = pdf_to_images_module.pdf_to_images(
@@ -140,7 +148,7 @@ def test_pdf_to_images_all_pages(monkeypatch, tmp_path):
         pages=None,
     )
 
-    assert calls == [(str(pdf_file), 200)]
+    assert calls == [(str(pdf_file), 200, 1, 2)]
     assert [Path(path).name for path in paths] == ["pagina_0001.png", "pagina_0002.png"]
 
 

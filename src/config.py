@@ -12,6 +12,7 @@ PADDLE_LANG                 = "es"
 PADDLE_USE_TEXTLINE_ORIENT  = True
 PADDLE_USE_DOC_ORIENT       = True
 PADDLE_USE_DOC_UNWARPING    = True
+PADDLE_USE_LAYOUT_ANALYSIS  = True    # detecta regiones (texto, tabla, figura) para mejor orden de lectura
 PADDLE_REC_SCORE_THRESH     = 0.5
 PADDLE_DET_THRESH           = 0.3
 PADDLE_DET_BOX_THRESH       = 0.3
@@ -30,7 +31,10 @@ QWEN_TIMEOUT                = 180.0
 
 # ── PDF a imágenes ─────────────────────────────────────────────────────────────
 PDF_DPI                     = 300
-PDF_IMAGE_FORMAT            = "PNG"
+PDF_IMAGE_FORMAT            = "JPEG"
+PDF_JPEG_QUALITY            = 95      # calidad JPEG (95 = visualmente idéntico a PNG para OCR)
+PDF_BATCH_SIZE              = 50      # páginas por batch en convert_from_path
+IMAGE_ENHANCE_CONTRAST      = 1.3     # 1.0 = deshabilitado, 1.3 = mejora conservadora
 
 # ── Paralelismo ────────────────────────────────────────────────────────────────
 # CPU servidor (i9): 3-4 | GPU servidor (RTX 5000): 2

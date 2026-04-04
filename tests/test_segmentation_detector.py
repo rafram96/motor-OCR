@@ -88,10 +88,11 @@ def test_fuzzy_detect_cargo_returns_false_when_rapidfuzz_missing(monkeypatch):
 
     monkeypatch.setattr(builtins, "__import__", fake_import)
 
-    encontrado, cargo = detector.fuzzy_detect_cargo("Gerente de contrato")
+    encontrado, cargo, score = detector.fuzzy_detect_cargo("Gerente de contrato")
 
     assert encontrado is False
     assert cargo == ""
+    assert score == 0
 
 
 def test_fuzzy_detect_cargo_returns_match_with_stub(monkeypatch):
@@ -102,10 +103,11 @@ def test_fuzzy_detect_cargo_returns_match_with_stub(monkeypatch):
     )
     monkeypatch.setitem(sys.modules, "rapidfuzz", rapidfuzz_stub)
 
-    encontrado, cargo = detector.fuzzy_detect_cargo("gerente contrato")
+    encontrado, cargo, score = detector.fuzzy_detect_cargo("gerente contrato")
 
     assert encontrado is True
     assert cargo == "Gerente de Contrato"
+    assert score == 90
 
 
 def test_confirmar_con_qwen_returns_error_on_image_read_failure():
@@ -179,28 +181,49 @@ def test_evaluar_separadora_accepts_qwen_medium_confidence(monkeypatch):
     assert sep.tiempo_deteccion == pytest.approx(0.25)
 
 
+def test_evaluar_separadora_accepts_fuzzy_directo(monkeypatch):
+    """Fuzzy con score >= 90 acepta directo sin llamar a Qwen."""
+    page = make_page(21, ["Gerente de Contrato"], text="Gerente de Contrato")
+
+    qwen_called = []
+    monkeypatch.setattr(detector, "_confirmar_con_qwen", lambda p: qwen_called.append(1) or (False, "", "error"))
+    monkeypatch.setattr(detector, "fuzzy_detect_cargo", lambda texto: (True, "Gerente de Contrato", 95))
+
+    times = iter([10.0, 10.01])
+    monkeypatch.setattr(detector.time, "time", lambda: next(times))
+
+    sep = detector.evaluar_separadora(page)
+
+    assert sep.es_separadora is True
+    assert sep.metodo == "fuzzy_directo"
+    assert sep.confianza_qwen == "fuzzy"
+    assert sep.cargo_normalizado == "Gerente De Contrato"
+    assert qwen_called == []  # Qwen no fue llamado
+
+
 def test_evaluar_separadora_uses_fuzzy_fallback(monkeypatch):
+    """Fuzzy con score 80-89 pasa a Qwen, y si Qwen falla, usa fuzzy como fallback."""
     page = make_page(22, ["gerente contrato"], text="gerente contrato")
     monkeypatch.setattr(detector, "_confirmar_con_qwen", lambda p: (False, "", "baja"))
-    monkeypatch.setattr(detector, "fuzzy_detect_cargo", lambda texto: (True, "Gerente de Contrato"))
+    monkeypatch.setattr(detector, "fuzzy_detect_cargo", lambda texto: (True, "Gerente de Contrato", 85))
 
-    times = iter([20.0, 20.5])
+    times = iter([20.0, 20.1, 20.5])
     monkeypatch.setattr(detector.time, "time", lambda: next(times))
 
     sep = detector.evaluar_separadora(page)
 
     assert sep.es_separadora is True
     assert sep.metodo == "fuzzy_fallback"
-    assert sep.confianza_qwen == "fuzzy"
+    assert sep.confianza_qwen == "baja"
     assert sep.cargo_normalizado == "Gerente De Contrato"
 
 
 def test_evaluar_separadora_discards_when_qwen_and_fuzzy_fail(monkeypatch):
     page = make_page(23, ["contenido extenso"], text="contenido extenso")
     monkeypatch.setattr(detector, "_confirmar_con_qwen", lambda p: (False, "", "error"))
-    monkeypatch.setattr(detector, "fuzzy_detect_cargo", lambda texto: (False, ""))
+    monkeypatch.setattr(detector, "fuzzy_detect_cargo", lambda texto: (False, "", 0))
 
-    times = iter([30.0, 30.4])
+    times = iter([30.0, 30.1, 30.4])
     monkeypatch.setattr(detector.time, "time", lambda: next(times))
 
     sep = detector.evaluar_separadora(page)

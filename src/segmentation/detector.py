@@ -18,6 +18,7 @@ from segmentation.config import (
     QWEN_MAX_TOKENS,
     QWEN_TIMEOUT,
     FUZZY_SCORE_MINIMO,
+    FUZZY_SCORE_DIRECTO,
     CARGOS_BASE,
     NORMALIZACIONES,
     PATRONES_CARGO,
@@ -201,16 +202,16 @@ def normalizar_cargo(cargo_raw: str) -> str:
 
 # ── Fallback fuzzy ────────────────────────────────────────────────────────────
 
-def fuzzy_detect_cargo(texto: str) -> tuple[bool, str]:
+def fuzzy_detect_cargo(texto: str) -> tuple[bool, str, int]:
     """
     Busca el cargo más similar en CARGOS_BASE usando fuzzy matching.
-    Retorna (encontrado, cargo_normalizado).
+    Retorna (encontrado, cargo_normalizado, score).
     """
     try:
         from rapidfuzz import fuzz, process as rfprocess
     except ImportError:
         logger.warning("rapidfuzz no instalado — fallback fuzzy deshabilitado")
-        return False, ""
+        return False, "", 0
 
     lineas = [l.strip() for l in texto.splitlines() if l.strip()]
 
@@ -245,9 +246,9 @@ def fuzzy_detect_cargo(texto: str) -> tuple[bool, str]:
         )
         if resultado and resultado[1] >= FUZZY_SCORE_MINIMO:
             idx = cargos_lower.index(resultado[0])
-            return True, CARGOS_BASE[idx]
+            return True, CARGOS_BASE[idx], int(resultado[1])
 
-    return False, ""
+    return False, "", 0
 
 
 # ── Confirmación con Qwen ─────────────────────────────────────────────────────
@@ -326,20 +327,41 @@ def evaluar_separadora(page: PageResult) -> SeparatorPage:
     """
     Evalúa si una página candidata es separadora.
 
-    Lógica de aceptación:
-    - Qwen dice es_separadora=True con confianza "alta" o "media" y cargo claro → aceptar
-    - Si Qwen falla / confianza "baja" / sin cargo claro → intentar fuzzy_fallback
-      - Fuzzy matchea → aceptar como fuzzy_fallback
-      - Fuzzy no matchea → descartar
+    Lógica de aceptación (fuzzy-first):
+    1. Fuzzy con score >= FUZZY_SCORE_DIRECTO (90) → aceptar directo, skip Qwen
+    2. Qwen dice es_separadora=True con confianza "alta" o "media" → aceptar
+    3. Fuzzy con score >= FUZZY_SCORE_MINIMO (80) → aceptar como fuzzy_fallback
+    4. Descartar
 
     Siempre retorna un SeparatorPage (es_separadora puede ser False).
     """
     t_start = time.time()
 
-    # ── Paso 1: Qwen como árbitro principal ─────────────────────────────────
+    # ── Paso 1: Fuzzy rápido (2ms) ──────────────────────────────────────────
+    fuzzy_encontrado, cargo_fuzzy, fuzzy_score = fuzzy_detect_cargo(page.text)
+
+    if fuzzy_encontrado and fuzzy_score >= FUZZY_SCORE_DIRECTO:
+        cargo_norm = normalizar_cargo(cargo_fuzzy)
+        logger.info(
+            f"Página {page.page_number}: separadora detectada por fuzzy directo "
+            f"(cargo='{cargo_norm}', score={fuzzy_score})"
+        )
+        return SeparatorPage(
+            page_number=page.page_number,
+            image_path=page.image_path,
+            line_count=page.line_count,
+            raw_text=page.text,
+            es_separadora=True,
+            cargo_detectado=cargo_fuzzy,
+            cargo_normalizado=cargo_norm,
+            confianza_qwen="fuzzy",
+            metodo="fuzzy_directo",
+            tiempo_deteccion=time.time() - t_start,
+        )
+
+    # ── Paso 2: Qwen como árbitro principal ─────────────────────────────────
     es_sep, cargo_qwen, confianza = _confirmar_con_qwen(page)
 
-    # ── Qwen confiable ────────────────────────────────────────────────────────
     if es_sep and confianza in ("alta", "media") and cargo_qwen.strip():
         cargo_norm = normalizar_cargo(cargo_qwen)
         logger.info(
@@ -359,15 +381,12 @@ def evaluar_separadora(page: PageResult) -> SeparatorPage:
             tiempo_deteccion=time.time() - t_start,
         )
 
-    # ── Paso 2: Fuzzy como segundo árbitro independiente ─────────────────────
-    # Actúa siempre que Qwen no aceptó — sea por error técnico,
-    # baja confianza, o decisión consciente de no es separadora.
-    encontrado, cargo_fuzzy = fuzzy_detect_cargo(page.text)
-    if encontrado:
+    # ── Paso 3: Reutilizar resultado fuzzy como fallback ─────────────────────
+    if fuzzy_encontrado:
         cargo_norm = normalizar_cargo(cargo_fuzzy)
         logger.info(
-            f"Página {page.page_number}: separadora detectada por fuzzy "
-            f"(qwen_conf={confianza}, cargo='{cargo_norm}')"
+            f"Página {page.page_number}: separadora detectada por fuzzy fallback "
+            f"(qwen_conf={confianza}, cargo='{cargo_norm}', score={fuzzy_score})"
         )
         return SeparatorPage(
             page_number=page.page_number,
@@ -385,7 +404,7 @@ def evaluar_separadora(page: PageResult) -> SeparatorPage:
     # ── Descartada ────────────────────────────────────────────────────────────
     logger.debug(
         f"Página {page.page_number}: descartada "
-        f"(qwen_es_sep={es_sep}, conf={confianza}, fuzzy=False)"
+        f"(qwen_es_sep={es_sep}, conf={confianza}, fuzzy_score={fuzzy_score})"
     )
     return SeparatorPage(
         page_number=page.page_number,
