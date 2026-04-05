@@ -40,27 +40,45 @@ def _asignar_numeros_implicitos(
             if inicio_bloque <= s.separator_page <= fin_bloque
         ]
 
-        # Contar apariciones de cada cargo base (sin N°)
-        conteo_cargo: dict[str, list[ProfessionalSection]] = defaultdict(list)
+        # Agrupar TODAS las secciones por cargo base (sin N°)
+        todas_por_cargo: dict[str, list[ProfessionalSection]] = defaultdict(list)
         for sec in secs_en_bloque:
-            cargo_base = _clave_agrupacion(sec.cargo)
-            # Si ya tiene N° explícito, no tocar
-            if _extraer_numero(sec.cargo) is not None:
-                continue
-            conteo_cargo[cargo_base].append(sec)
+            # Normalizar sin N° para agrupar variantes del mismo cargo
+            cargo_sin_numero = re.sub(r'\s*n[°º]?\s*\d+', '', sec.cargo.lower()).strip()
+            cargo_sin_numero = re.sub(r'\s{2,}', ' ', cargo_sin_numero)
+            todas_por_cargo[cargo_sin_numero].append(sec)
 
-        # Asignar N° implícito solo a cargos que aparecen más de 1 vez
-        for cargo_base, secs in conteo_cargo.items():
-            if len(secs) <= 1:
+        for cargo_base, secs_todas in todas_por_cargo.items():
+            if len(secs_todas) <= 1:
                 continue
-            # Ordenar por página separadora para asignar en orden
-            secs_ord = sorted(secs, key=lambda s: s.separator_page)
-            for idx, sec in enumerate(secs_ord, start=1):
-                sec.cargo = f"{sec.cargo} N°{idx}"
-                sec.numero = str(idx)
+
+            # Separar: las que ya tienen N° explícito vs las que no
+            con_numero = [s for s in secs_todas if _extraer_numero(s.cargo) is not None]
+            sin_numero = [s for s in secs_todas if _extraer_numero(s.cargo) is None]
+
+            if not sin_numero:
+                continue  # todas ya tienen N° explícito
+
+            # Determinar qué N° ya están ocupados
+            numeros_usados = set()
+            for s in con_numero:
+                n = _extraer_numero(s.cargo)
+                if n:
+                    numeros_usados.add(int(n))
+
+            # Asignar N° a las que faltan, en orden de aparición
+            sin_numero_ord = sorted(sin_numero, key=lambda s: s.separator_page)
+            siguiente = 1
+            for sec in sin_numero_ord:
+                while siguiente in numeros_usados:
+                    siguiente += 1
+                sec.cargo = f"{sec.cargo} N°{siguiente}"
+                sec.numero = str(siguiente)
+                numeros_usados.add(siguiente)
                 logger.debug(
                     f"  N° implícito: '{sec.cargo}' (pág {sec.separator_page})"
                 )
+                siguiente += 1
 
 
 def consolidar_secciones(

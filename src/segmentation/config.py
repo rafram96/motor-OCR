@@ -91,6 +91,7 @@ FRASES_DESCARTE = [
     "calificaciones del personal clave",
     "experiencia del personal clave",
     "gerente general",
+    "experiencia en la especialidad adicional",
 ]
 
 # ── Normalización de errores OCR conocidos ────────────────────────────────────
