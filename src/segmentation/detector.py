@@ -124,6 +124,22 @@ def es_candidata_separadora(page: PageResult) -> bool:
 
     texto_norm = _strip_tildes(texto_junto)
 
+    # OCR muy corrupto (conf < 0.80) con pocas líneas → el texto no es confiable,
+    # dejar que Qwen VL decida con la imagen en vez de descartar por patrones
+    ocr_corrupto = (
+        page.conf_promedio is not None
+        and page.conf_promedio < 0.80
+        and len(lines_limpias) <= MAX_LINEAS_SEPARADORA
+    )
+
+    if ocr_corrupto:
+        logger.info(
+            f"  CANDIDATA OCR-CORRUPTA pág {page.page_number}: "
+            f"conf={page.conf_promedio:.3f}, lines={len(lines_limpias)} "
+            f"— se envía a Qwen VL sin filtro de patrones"
+        )
+        return True
+
     # Lista blanca: si no contiene ningún patrón de cargo → descartar
     if not any(_strip_tildes(p) in texto_norm for p in PATRONES_CARGO):
         logger.info(f"  DESCARTE PATRON pág {page.page_number}: sin patrón de cargo — '{texto_junto[:60]}'")
