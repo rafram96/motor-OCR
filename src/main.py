@@ -267,8 +267,8 @@ def process_and_segment(
     )
 
     # ── Segmentación ──────────────────────────────────────────────────────────
-    secciones_raw, candidatas_descartadas = segment_document(doc)
-    secciones = consolidar_secciones(secciones_raw)
+    secciones_raw, candidatas_descartadas, delimitadores = segment_document(doc)
+    secciones = consolidar_secciones(secciones_raw, delimitadores)
 
     # ── Markdown segmentación (opcional) ──────────────────────────────────────
     if SAVE_MARKDOWN:

@@ -9,7 +9,64 @@ from segmentation.models.professional_section import ProfessionalSection, PageRa
 logger = logging.getLogger(__name__)
 
 
-def consolidar_secciones(secciones: List[ProfessionalSection]) -> List[ProfessionalSection]:
+def _asignar_numeros_implicitos(
+    secciones: List[ProfessionalSection],
+    delimitadores: List[int],
+) -> None:
+    """
+    Asigna N° implícito a secciones sin número explícito dentro de cada
+    bloque temático (entre delimitadores consecutivos).
+
+    Si "Especialista Estructuras" aparece 2 veces en B.1 sin N°,
+    les asigna N°1 y N°2 respectivamente. Esto permite que la
+    consolidación las empareje correctamente con B.2's ocurrencias.
+
+    Solo modifica secciones cuyo cargo aparece más de una vez dentro
+    del mismo bloque temático y que no tienen N° explícito.
+    """
+    if not delimitadores:
+        return
+
+    # Crear límites de bloques temáticos: [(inicio, fin), ...]
+    limites: List[tuple[int, int]] = []
+    for i, d in enumerate(delimitadores):
+        fin = delimitadores[i + 1] - 1 if i + 1 < len(delimitadores) else 999999
+        limites.append((d, fin))
+
+    for inicio_bloque, fin_bloque in limites:
+        # Secciones dentro de este bloque temático
+        secs_en_bloque = [
+            s for s in secciones
+            if inicio_bloque <= s.separator_page <= fin_bloque
+        ]
+
+        # Contar apariciones de cada cargo base (sin N°)
+        conteo_cargo: dict[str, list[ProfessionalSection]] = defaultdict(list)
+        for sec in secs_en_bloque:
+            cargo_base = _clave_agrupacion(sec.cargo)
+            # Si ya tiene N° explícito, no tocar
+            if _extraer_numero(sec.cargo) is not None:
+                continue
+            conteo_cargo[cargo_base].append(sec)
+
+        # Asignar N° implícito solo a cargos que aparecen más de 1 vez
+        for cargo_base, secs in conteo_cargo.items():
+            if len(secs) <= 1:
+                continue
+            # Ordenar por página separadora para asignar en orden
+            secs_ord = sorted(secs, key=lambda s: s.separator_page)
+            for idx, sec in enumerate(secs_ord, start=1):
+                sec.cargo = f"{sec.cargo} N°{idx}"
+                sec.numero = str(idx)
+                logger.debug(
+                    f"  N° implícito: '{sec.cargo}' (pág {sec.separator_page})"
+                )
+
+
+def consolidar_secciones(
+    secciones: List[ProfessionalSection],
+    delimitadores: Optional[List[int]] = None,
+) -> List[ProfessionalSection]:
     """
     Agrupa bloques del mismo profesional en una sola ProfessionalSection.
 
@@ -19,12 +76,18 @@ def consolidar_secciones(secciones: List[ProfessionalSection]) -> List[Professio
 
     Args:
         secciones: Lista de secciones detectadas por segment_document().
+        delimitadores: Páginas de delimitadores temáticos (B.1, B.2, etc.)
+                       Usado para asignar N° implícito a cargos repetidos.
 
     Returns:
         Lista consolidada — un elemento por profesional único.
     """
     if not secciones:
         return []
+
+    # ── Asignar N° implícito a cargos repetidos sin número explícito ─────────
+    if delimitadores:
+        _asignar_numeros_implicitos(secciones, delimitadores)
 
     # ── Agrupar por clave cargo + número ─────────────────────────────────────
     grupos: dict[str, list[ProfessionalSection]] = defaultdict(list)

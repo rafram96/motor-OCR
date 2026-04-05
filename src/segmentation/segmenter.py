@@ -78,7 +78,7 @@ def _format_eta(segundos: float) -> str:
     return f"{s}s"
 
 
-def segment_document(doc: DocumentResult) -> Tuple[List[ProfessionalSection], List[SeparatorPage]]:
+def segment_document(doc: DocumentResult) -> Tuple[List[ProfessionalSection], List[SeparatorPage], List[int]]:
     """
     Divide un DocumentResult en secciones por profesional.
 
@@ -92,9 +92,10 @@ def segment_document(doc: DocumentResult) -> Tuple[List[ProfessionalSection], Li
         doc: DocumentResult del motor OCR con todas las páginas.
 
     Returns:
-        (secciones, candidatas_descartadas)
+        (secciones, candidatas_descartadas, delimitadores)
         secciones: Lista de ProfessionalSection.
         candidatas_descartadas: Lista de SeparatorPage con es_separadora=False.
+        delimitadores: Páginas de delimitadores temáticos (B.1, B.2, etc.)
     """
     pages_ord = sorted(doc.pages, key=lambda p: p.page_number)
 
@@ -207,9 +208,12 @@ def segment_document(doc: DocumentResult) -> Tuple[List[ProfessionalSection], Li
         pags_corte.add(d.page_number)
 
     # (b) Delimitadores de bloque (escanea TODAS las páginas)
+    delimitadores_tematicos: List[int] = []
     for p in pages_ord:
         if p.page_number not in pags_corte and es_delimitador_bloque(p):
             pags_corte.add(p.page_number)
+            delimitadores_tematicos.append(p.page_number)
+    delimitadores_tematicos.sort()
 
     if pags_corte:
         pags_corte_ord = sorted(pags_corte)
@@ -248,4 +252,4 @@ def segment_document(doc: DocumentResult) -> Tuple[List[ProfessionalSection], Li
     logger.info(
         f"Segmentación completada: {len(secciones)} profesionales detectados"
     )
-    return secciones, descartadas
+    return secciones, descartadas, delimitadores_tematicos
