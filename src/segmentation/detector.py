@@ -216,6 +216,16 @@ def normalizar_cargo(cargo_raw: str) -> str:
     return texto_norm.title()
 
 
+def _es_frase_descarte(cargo: str) -> bool:
+    """
+    Verifica si el cargo detectado coincide con una frase de descarte.
+    Necesario porque páginas con OCR corrupto saltan el check de FRASES_DESCARTE
+    en es_candidata_separadora y van directo a Qwen.
+    """
+    cargo_norm = _strip_tildes(cargo.lower())
+    return any(_strip_tildes(f) in cargo_norm for f in FRASES_DESCARTE)
+
+
 # ── Fallback fuzzy ────────────────────────────────────────────────────────────
 
 def fuzzy_detect_cargo(texto: str) -> tuple[bool, str, int]:
@@ -356,7 +366,7 @@ def evaluar_separadora(page: PageResult) -> SeparatorPage:
     # ── Paso 1: Fuzzy rápido (2ms) ──────────────────────────────────────────
     fuzzy_encontrado, cargo_fuzzy, fuzzy_score = fuzzy_detect_cargo(page.text)
 
-    if fuzzy_encontrado and fuzzy_score >= FUZZY_SCORE_DIRECTO:
+    if fuzzy_encontrado and fuzzy_score >= FUZZY_SCORE_DIRECTO and not _es_frase_descarte(cargo_fuzzy):
         cargo_norm = normalizar_cargo(cargo_fuzzy)
         logger.info(
             f"Página {page.page_number}: separadora detectada por fuzzy directo "
@@ -378,7 +388,7 @@ def evaluar_separadora(page: PageResult) -> SeparatorPage:
     # ── Paso 2: Qwen como árbitro principal ─────────────────────────────────
     es_sep, cargo_qwen, confianza = _confirmar_con_qwen(page)
 
-    if es_sep and confianza in ("alta", "media") and cargo_qwen.strip():
+    if es_sep and confianza in ("alta", "media") and cargo_qwen.strip() and not _es_frase_descarte(cargo_qwen):
         cargo_norm = normalizar_cargo(cargo_qwen)
         logger.info(
             f"Página {page.page_number}: separadora detectada por Qwen "
@@ -398,7 +408,7 @@ def evaluar_separadora(page: PageResult) -> SeparatorPage:
         )
 
     # ── Paso 3: Reutilizar resultado fuzzy como fallback ─────────────────────
-    if fuzzy_encontrado:
+    if fuzzy_encontrado and not _es_frase_descarte(cargo_fuzzy):
         cargo_norm = normalizar_cargo(cargo_fuzzy)
         logger.info(
             f"Página {page.page_number}: separadora detectada por fuzzy fallback "
