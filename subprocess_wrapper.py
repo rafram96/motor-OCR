@@ -21,6 +21,27 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from main import process_document, process_and_segment
 
+
+def _serializar_secciones(secciones):
+    return [
+        {
+            "section_index": sec.section_index,
+            "cargo": sec.cargo,
+            "cargo_raw": sec.cargo_raw,
+            "numero": sec.numero,
+            "total_pages": sec.total_pages,
+            "page_numbers": sec.page_numbers,
+            "bloques_origen": [
+                {"start": b.start, "end": b.end}
+                for b in sec.bloques_origen
+            ],
+            "es_tipo_b": sec.es_tipo_b,
+            "full_text": sec.full_text,
+        }
+        for sec in secciones
+    ]
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Usage: subprocess_wrapper.py <args_file> <results_file>")
@@ -34,8 +55,8 @@ if __name__ == "__main__":
         with open(args_file) as f:
             args = json.load(f)
 
-        # Determinar modo: ocr_only o segmentation
-        mode = args.pop("mode", "segmentation")  # Default: segmentation
+        # Determinar modo: ocr_only | segmentation | pdfplumber_segmentation
+        mode = args.pop("mode", "segmentation")
         pdf_name = Path(args['pdf_path']).name
 
         if mode == "ocr_only":
@@ -43,16 +64,17 @@ if __name__ == "__main__":
             print(f"[subprocess_wrapper] Iniciando OCR (mode=ocr_only) con PDF: {pdf_name}")
             doc = process_document(**args)
 
-            # Serializar DocumentResult a JSON (evita problemas de pickle con imports)
             result_data = {
                 "mode": "ocr_only",
                 "total_pages": doc.total_pages,
                 "pages_paddle": doc.pages_paddle,
                 "pages_qwen": doc.pages_qwen,
+                "pages_pdfplumber": doc.pages_pdfplumber,
                 "pages_error": doc.pages_error,
                 "conf_promedio_documento": doc.conf_promedio_documento,
                 "tiempo_total": doc.tiempo_total,
                 "full_text": doc.full_text,
+                "engine": "motor_ocr",
             }
 
             with open(results_file, "w", encoding="utf-8") as f:
@@ -63,40 +85,56 @@ if __name__ == "__main__":
                 f"({doc.pages_paddle} Paddle, {doc.pages_qwen} Qwen, {doc.pages_error} errores)"
             )
 
+        elif mode == "pdfplumber_segmentation":
+            # Fast-path: pdfplumber + segmentación texto-only (para PDFs digitales)
+            from engines.pdfplumber import process_with_pdfplumber
+
+            print(f"[subprocess_wrapper] Iniciando PDFPLUMBER + Segmentación con PDF: {pdf_name}")
+            doc, secciones = process_with_pdfplumber(**args)
+
+            result_data = {
+                "mode": "pdfplumber_segmentation",
+                "doc": {
+                    "total_pages": doc.total_pages,
+                    "pages_paddle": doc.pages_paddle,
+                    "pages_qwen": doc.pages_qwen,
+                    "pages_pdfplumber": doc.pages_pdfplumber,
+                    "pages_error": doc.pages_error,
+                    "conf_promedio_documento": doc.conf_promedio_documento,
+                    "tiempo_total": doc.tiempo_total,
+                    "full_text": doc.full_text,
+                    "engine": "pdfplumber",
+                },
+                "secciones": _serializar_secciones(secciones),
+            }
+
+            with open(results_file, "w", encoding="utf-8") as f:
+                json.dump(result_data, f, ensure_ascii=False)
+
+            print(
+                f"[subprocess_wrapper] OK: {doc.total_pages} páginas, {len(secciones)} profesionales "
+                f"(pdfplumber={doc.pages_pdfplumber}, errores={doc.pages_error})"
+            )
+
         else:
-            # OCR + Segmentación por profesionales
+            # OCR + Segmentación por profesionales (flujo completo motor-OCR)
             print(f"[subprocess_wrapper] Iniciando OCR + Segmentación con PDF: {pdf_name}")
             doc, secciones = process_and_segment(**args)
 
-            # Serializar a JSON
             result_data = {
                 "mode": "segmentation",
                 "doc": {
                     "total_pages": doc.total_pages,
                     "pages_paddle": doc.pages_paddle,
                     "pages_qwen": doc.pages_qwen,
+                    "pages_pdfplumber": doc.pages_pdfplumber,
                     "pages_error": doc.pages_error,
                     "conf_promedio_documento": doc.conf_promedio_documento,
                     "tiempo_total": doc.tiempo_total,
                     "full_text": doc.full_text,
+                    "engine": "motor_ocr",
                 },
-                "secciones": [
-                    {
-                        "section_index": sec.section_index,
-                        "cargo": sec.cargo,
-                        "cargo_raw": sec.cargo_raw,
-                        "numero": sec.numero,
-                        "total_pages": sec.total_pages,
-                        "page_numbers": sec.page_numbers,
-                        "bloques_origen": [
-                            {"start": b.start, "end": b.end}
-                            for b in sec.bloques_origen
-                        ],
-                        "es_tipo_b": sec.es_tipo_b,
-                        "full_text": sec.full_text,
-                    }
-                    for sec in secciones
-                ],
+                "secciones": _serializar_secciones(secciones),
             }
 
             with open(results_file, "w", encoding="utf-8") as f:

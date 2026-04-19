@@ -14,6 +14,7 @@ class DocumentResult:
     # ── Resumen de engines ─────────────────────────────────────────────────────
     pages_paddle: int = 0
     pages_qwen: int = 0
+    pages_pdfplumber: int = 0
     pages_error: int = 0
 
     # ── Métricas globales ──────────────────────────────────────────────────────
@@ -53,9 +54,10 @@ class DocumentResult:
         Calcula y actualiza los campos de resumen.
         Llamar después de que todas las páginas estén añadidas.
         """
-        self.pages_paddle = sum(1 for p in self.pages if p.engine_used == "paddle")
-        self.pages_qwen   = sum(1 for p in self.pages if p.engine_used == "qwen")
-        self.pages_error  = sum(1 for p in self.pages if p.engine_used == "error")
+        self.pages_paddle     = sum(1 for p in self.pages if p.engine_used == "paddle")
+        self.pages_qwen       = sum(1 for p in self.pages if p.engine_used == "qwen")
+        self.pages_pdfplumber = sum(1 for p in self.pages if p.engine_used == "pdfplumber")
+        self.pages_error      = sum(1 for p in self.pages if p.engine_used == "error")
 
         confianzas = [p.conf_promedio for p in self.pages if p.conf_promedio is not None]
         self.conf_promedio_documento = sum(confianzas) / len(confianzas) if confianzas else 0.0

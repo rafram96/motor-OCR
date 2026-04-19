@@ -64,3 +64,4 @@ wcwidth==0.6.0
 pytest
 openai
 rapidfuzz
+pdfplumber
