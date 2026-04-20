@@ -160,7 +160,7 @@ def segment_document(doc: DocumentResult) -> Tuple[List[ProfessionalSection], Li
             "No se detectaron separadoras — el documento puede no tener "
             "la estructura esperada o todas las candidatas fueron descartadas."
         )
-        return [], descartadas
+        return [], descartadas, []
 
     # ── 2. Agrupar páginas entre separadoras ──────────────────────────────────
     secciones: List[ProfessionalSection] = []
