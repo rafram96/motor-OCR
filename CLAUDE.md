@@ -19,6 +19,7 @@ Entrega archivos Markdown estructurados que el backend de Alpamayo consume sin t
 | `ocr_only` | `process_document` | PaddleOCR + fallback Qwen-VL. Solo texto, sin segmentar. | `{total_pages, pages_paddle, pages_qwen, pages_pdfplumber, pages_error, conf_promedio_documento, tiempo_total, full_text, engine}` |
 | `segmentation` | `process_and_segment` | OCR completo + segmentacion por profesional. | `{mode, doc{...engine:"motor_ocr"}, secciones[...]}` |
 | `pdfplumber_segmentation` | `engines.pdfplumber.process_with_pdfplumber` | Fast-path para PDFs digitales: pdfplumber en vez de PaddleOCR/Qwen-VL + fuzzy + qwen2.5:14b texto-only. | Mismo schema que `segmentation` pero con `doc.engine: "pdfplumber"`. |
+| `table_extract` | `engines.table_extract.extract_tables_from_pdf` | Extraccion de tablas como matrices via PP-Structure V3 (PaddleOCR). Usado por Alpamayo para Capa 2 del pipeline 3-capas (B.1/B.2 del TDR escaneado). | `{mode, pdf_path, paginas_solicitadas, tablas:[{pagina,matriz,html,bbox,n_filas,n_cols,score}], tiempo_total, n_paginas_procesadas, errores}` |
 
 El mode default si no se pasa es `segmentation`.
 
@@ -27,7 +28,8 @@ El mode default si no se pasa es `segmentation`.
 `src/engines/` contiene los adaptadores:
 - `paddle_engine.py` — PaddleOCR (default para la mayoria de paginas).
 - `qwen_engine.py` — Qwen-VL via Ollama (`qwen2.5vl:7b`, fallback cuando Paddle tiene baja confianza).
-- `pdfplumber/` — **nuevo**. Engine para PDFs con capa de texto nativa (digitales). No requiere GPU, no hace OCR.
+- `pdfplumber/` — Engine para PDFs con capa de texto nativa (digitales). No requiere GPU, no hace OCR.
+- `table_extract/` — **nuevo**. PP-Structure V3 de PaddleOCR para extraer tablas como matrices [filas][cols]. Solo procesa las paginas pedidas (lista explicita). Usado por mode `table_extract`.
 
 ### engines/pdfplumber/
 
@@ -40,6 +42,19 @@ Fast-path que se salta PaddleOCR + Qwen-VL cuando el PDF ya tiene texto extraibl
 - `pipeline.py::process_with_pdfplumber` — orquesta todo, genera los mismos 3 `.md` que el flujo normal.
 
 **La decision de usar este engine se toma en Alpamayo**, no aqui. Alpamayo muestrea las primeras 5 paginas con pdfplumber y si chars/pag >= umbral (default 200) invoca `mode=pdfplumber_segmentation`.
+
+### engines/table_extract/
+
+Extrae las tablas detectadas en una lista explicita de paginas como matrices `[filas][columnas]` usando **PP-Structure V3** de PaddleOCR (`PPStructureV3` — nuevo en paddleocr 3.x). Devuelve la matriz, el HTML literal de PP-Structure y el bbox de cada tabla.
+
+- `pp_structure.py::get_engine` — singleton `PPStructureV3` (carga modelos una vez).
+- `pp_structure.py::html_to_matrix` — parser HTML stdlib que respeta `colspan`/`rowspan` para que cada celda merged se replique en sus filas/columnas (necesario para mapear columnas por header en el consumidor).
+- `pp_structure.py::extract_tables_from_image` — corre PP-Structure sobre una imagen y normaliza el output (varios layouts segun version) en una lista de dicts `{pagina, matriz, html, bbox, n_filas, n_cols, score}`.
+- `pipeline.py::extract_tables_from_pdf` — orquesta: pdf -> imagenes (pdf_to_images con `PDF_DPI`/`POPPLER_PATH` global) -> PP-Structure por imagen -> lista plana de tablas.
+
+Reusa `pipeline.pdf_to_images.pdf_to_images` para no duplicar logica de rendering.
+
+**Cuando lo invoca Alpamayo**: capa 2 del extractor 3-capas, despues de que la Capa 1 (pdfplumber.extract_tables) no detecto tablas (PDF escaneado). Pasa solo las paginas que contienen las tablas B.1 y B.2 del TDR.
 
 ## Archivos `.md` generados
 
