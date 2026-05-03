@@ -116,6 +116,36 @@ if __name__ == "__main__":
                 f"(pdfplumber={doc.pages_pdfplumber}, errores={doc.pages_error})"
             )
 
+        elif mode == "table_extract":
+            # Extracción de tablas (B.1 / B.2 del TDR) con PP-Structure V3.
+            # Usado por Alpamayo Capa 2 del pipeline 3-capas.
+            # Args esperados: {pdf_path, paginas: [int], output_dir?}
+            from engines.table_extract import extract_tables_from_pdf
+
+            paginas = args.get("paginas") or args.get("pages") or []
+            print(
+                f"[subprocess_wrapper] Iniciando TABLE_EXTRACT con PDF: {pdf_name} "
+                f"(paginas={paginas})"
+            )
+
+            result_data = extract_tables_from_pdf(
+                pdf_path=args["pdf_path"],
+                paginas=paginas,
+                output_dir=args.get("output_dir"),
+            )
+            result_data["mode"] = "table_extract"
+
+            with open(results_file, "w", encoding="utf-8") as f:
+                json.dump(result_data, f, ensure_ascii=False)
+
+            n_tablas = len(result_data.get("tablas", []))
+            n_procesadas = result_data.get("n_paginas_procesadas", 0)
+            tiempo = result_data.get("tiempo_total", 0.0)
+            print(
+                f"[subprocess_wrapper] OK: {n_tablas} tablas extraidas de "
+                f"{n_procesadas} paginas en {tiempo:.1f}s"
+            )
+
         else:
             # OCR + Segmentación por profesionales (flujo completo motor-OCR)
             print(f"[subprocess_wrapper] Iniciando OCR + Segmentación con PDF: {pdf_name}")
